@@ -1,0 +1,1654 @@
+{
+  "row_counts": {
+    "de_adminmanualattachments": 0,
+    "de_commercialorganizations": 48183,
+    "de_commercialorganizationsdetails": 11331,
+    "de_commercialorganizationspublisheditem": 38573,
+    "de_commercialorganizationsstockdetails": 1182,
+    "de_contractsupon5mln": 38871,
+    "de_contractsupon5mlndetails": 2007,
+    "de_contractsupon5mlnpublisheditem": 38554,
+    "de_cryptoassets": 1349,
+    "de_cryptoassetsdetails": 62,
+    "de_cryptoassetspublisheditem": 1108,
+    "de_declaration": 284143,
+    "de_declarationadditionalinformation": 5277,
+    "de_declarationadditionalinformationpublisheditem": 5021,
+    "de_declarationchangehistory": 8599,
+    "de_declarationchangehistoryattachmentspdfversions": 9632,
+    "de_declarationchangehistorycommentsandattachments": 1391,
+    "de_declarationchangehistorypublisheditem": 3783,
+    "de_declarationoverdueact": 0,
+    "de_declarationoverdueactpublisheditem": 0,
+    "de_declarationpublisheditem": 102270,
+    "de_declarationsubmittedconditions": 1002258,
+    "de_expenses": 94836,
+    "de_expensesadditionalinformation": 41189,
+    "de_expensesadditionalinformationpublisheditem": 39339,
+    "de_expensesdetails": 21328,
+    "de_expensespublisheditem": 87504,
+    "de_expensiveproperty": 137668,
+    "de_expensivepropertydetails": 7374,
+    "de_expensivepropertypublisheditem": 99219,
+    "de_fieldprotectionconfig": 11526,
+    "de_financialmeans": 199363,
+    "de_financialmeansbankaccountbalances": 207686,
+    "de_financialmeanscash": 195297,
+    "de_financialmeanselectronicaccountsandcryptocurrencies": 17607,
+    "de_financialmeanspublisheditem": 99187,
+    "de_gift": 69,
+    "de_giftattachments": 82,
+    "de_giftattachmentspdfversions": 3,
+    "de_giftcommentsandattachments": 4,
+    "de_giftpriceevaluation": 9,
+    "de_giftpriceevaluationpublisheditem": 9,
+    "de_giftpriceevaluationsource": 7,
+    "de_giftpublisheditem": 18,
+    "de_giftrejectioncommenthistory": 18,
+    "de_giftrelatedgifts": 5,
+    "de_helpdesk": 5660,
+    "de_helpdeskattachments": 1823,
+    "de_helpdeskcommentshistory": 1722,
+    "de_helpdeskpublisheditem": 2050,
+    "de_incomeadditionalinformation": 39028,
+    "de_incomeadditionalinformationpublisheditem": 35232,
+    "de_integrity": 7,
+    "de_integrityadditionalmaterials": 0,
+    "de_integrityadditionalmaterialsdocuments": 0,
+    "de_integrityadditionalmaterialspublisheditem": 0,
+    "de_integritybiographicalinformation": 2,
+    "de_integritybiographicalinformationothernames": 0,
+    "de_integritybiographicalinformationotherresidentialaddresses": 0,
+    "de_integritybiographicalinformationpublisheditem": 2,
+    "de_integritycryptoassets": 1,
+    "de_integritycryptoassetsdetails": 0,
+    "de_integritycryptoassetspublisheditem": 1,
+    "de_integrityeducation": 6,
+    "de_integrityeducationhigher": 2,
+    "de_integrityeducationpostgraduate": 0,
+    "de_integrityeducationpublisheditem": 2,
+    "de_integrityeducationscholarshipsgrants": 0,
+    "de_integrityeducationschool": 4,
+    "de_integrityeducationvocational": 0,
+    "de_integrityexpensiveproperty": 1,
+    "de_integrityexpensivepropertydetails": 0,
+    "de_integrityexpensivepropertypublisheditem": 1,
+    "de_integrityfamilymemberconsents": 1,
+    "de_integrityfinancialmeans": 1,
+    "de_integrityfinancialmeansbankaccountbalances": 0,
+    "de_integrityfinancialmeanscash": 0,
+    "de_integrityfinancialmeanselectronicaccounts": 0,
+    "de_integrityfinancialmeanspublisheditem": 1,
+    "de_integrityinterests": 1,
+    "de_integrityinterestspartymembership": 0,
+    "de_integrityinterestspublicofficerelatives": 0,
+    "de_integrityinterestspublisheditem": 1,
+    "de_integrityinterestssocialmediaaccounts": 0,
+    "de_integrityliability": 4,
+    "de_integrityliabilityadministrative": 1,
+    "de_integrityliabilityadministrativeadditionalinformation": 1,
+    "de_integrityliabilitycivilcaseparticipation": 0,
+    "de_integrityliabilityconviction": 0,
+    "de_integrityliabilitycriminal": 1,
+    "de_integrityliabilitydisciplinary": 1,
+    "de_integrityliabilitydisciplinaryadditionalinformation": 1,
+    "de_integrityliabilitypublisheditem": 3,
+    "de_integrityliabilityrevocatedconviction": 0,
+    "de_integrityliabilityunfulfilledterminatedprosecutions": 0,
+    "de_integrityloansanddeposits": 4,
+    "de_integrityloansanddepositsdepositdetails": 0,
+    "de_integrityloansanddepositsloandetails": 0,
+    "de_integrityloansanddepositspublisheditem": 1,
+    "de_integritypublisheditem": 4,
+    "de_integrityrealestate": 2,
+    "de_integrityrealestatedetails": 0,
+    "de_integrityrealestatepublisheditem": 1,
+    "de_integrityrelationtocriminalsubculture": 1,
+    "de_integrityrelationtocriminalsubculturefamilymemberinfo": 0,
+    "de_integrityrelationtocriminalsubculturenomineeinfo": 0,
+    "de_integrityrelationtocriminalsubculturepublisheditem": 1,
+    "de_integrityrevenues": 1,
+    "de_integrityrevenuesincomes": 0,
+    "de_integrityrevenuespublisheditem": 1,
+    "de_integritysecurityandinvestment": 1,
+    "de_integritysecurityandinvestmentdetails": 0,
+    "de_integritysecurityandinvestmentpublisheditem": 1,
+    "de_integrityvehicle": 2,
+    "de_integrityvehicledetails": 0,
+    "de_integrityvehiclepublisheditem": 1,
+    "de_integritywork": 2,
+    "de_integrityworkincentives": 1,
+    "de_integrityworkotherprofessionalactivities": 0,
+    "de_integrityworkpositions": 0,
+    "de_integrityworkpublisheditem": 2,
+    "de_integrityworkspecificactivitylicensecertificates": 0,
+    "de_interestsadditionalinformation": 29090,
+    "de_interestsadditionalinformationpublisheditem": 28154,
+    "de_loansanddeposits": 136511,
+    "de_loansanddepositsdepositdetails": 40938,
+    "de_loansanddepositsloandetails": 32612,
+    "de_loansanddepositspublisheditem": 99215,
+    "de_membershipinparties": 39200,
+    "de_membershipinpartiesdetails": 6110,
+    "de_membershipinpartiespublisheditem": 38539,
+    "de_noncommercialorganizations": 39419,
+    "de_noncommercialorganizationsdetails": 4445,
+    "de_noncommercialorganizationspublisheditem": 38566,
+    "de_party": 12659,
+    "de_partyattachments": 872,
+    "de_partybankaccounts": 545,
+    "de_partydeactivationperiods": 1308,
+    "de_partyleaders": 95362,
+    "de_partypublisheditem": 2103,
+    "de_partyregionalbranches": 203265,
+    "de_profile": 573095,
+    "de_profiledocuments": 987402,
+    "de_profilefamilymembers": 392206,
+    "de_profileotherpositionslist": 552,
+    "de_profilepositionslist": 128065,
+    "de_profilepublicservantpositionslist": 1,
+    "de_profilepublisheditem": 281208,
+    "de_profilerelatives": 496164,
+    "de_propertyadditionalinformation": 64068,
+    "de_propertyadditionalinformationpublisheditem": 55942,
+    "de_protectionlevelsconfig": 3,
+    "de_protectionlevelsconfigpublisheditem": 3,
+    "de_realestate": 189984,
+    "de_realestatedetails": 481217,
+    "de_realestatepublisheditem": 99301,
+    "de_report": 2771,
+    "de_reportcashflow": 669,
+    "de_reportcashflowexpenditures": 6690,
+    "de_reportcashflowexpendituresotherexpendituresdetails": 2643,
+    "de_reportcashflowincomes": 609,
+    "de_reportcashflowpublisheditem": 338,
+    "de_reportchangehistory": 194,
+    "de_reportchangehistoryattachmentspdfversions": 79,
+    "de_reportchangehistorycommentsandattachments": 17,
+    "de_reportchangehistorypublisheditem": 158,
+    "de_reportincomes": 1226,
+    "de_reportincomescheapordonatedrealestate": 701,
+    "de_reportincomescooperationfunds": 31,
+    "de_reportincomesentryfees": 81,
+    "de_reportincomesexcessiveorprohibitedmonetarydonations": 229,
+    "de_reportincomesfreeofchargeworksservices": 144,
+    "de_reportincomesmembershipfees": 1768655,
+    "de_reportincomesmonetarydonationsofindividuals": 121852,
+    "de_reportincomesnoncompliantandnottransferredmonetarydonations": 0,
+    "de_reportincomesotherincomesdetails": 353,
+    "de_reportincomesothernonmonetarydonations": 1329,
+    "de_reportincomespartyfoundedcompaniesfunding": 0,
+    "de_reportincomesprohibitedmonetarydonations": 425,
+    "de_reportincomespublisheditem": 231,
+    "de_reportincomesrealestaterent": 425,
+    "de_reportincomesrealestatesale": 60,
+    "de_reportincomestotals": 15081,
+    "de_reportliabilities": 136,
+    "de_reportliabilitiescredits": 5,
+    "de_reportliabilitiesloans": 68,
+    "de_reportliabilitiespublisheditem": 105,
+    "de_reportmethodofaccounting": 40,
+    "de_reportmethodofaccountingpublisheditem": 37,
+    "de_reportprotectionconfig": 1,
+    "de_reportprotectionconfigprotectedfields": 124,
+    "de_reportprotectionconfigpublisheditem": 1,
+    "de_reportpublisheditem": 1192,
+    "de_reportpublishedresearch": 43,
+    "de_reportpublishedresearchdetails": 48,
+    "de_reportpublishedresearchpublisheditem": 39,
+    "de_reportrealestate": 285,
+    "de_reportrealestatedetails": 7474,
+    "de_reportrealestatepublisheditem": 116,
+    "de_reportvehicle": 60,
+    "de_reportvehicledetails": 16,
+    "de_reportvehiclepublisheditem": 56,
+    "de_revenues": 207500,
+    "de_revenuesincomes": 428360,
+    "de_revenuesprimaryincomes": 0,
+    "de_revenuespublisheditem": 99182,
+    "de_revenuesremainingprincipals": 192133,
+    "de_securityandinvestment": 125976,
+    "de_securityandinvestmentdetails": 14804,
+    "de_securityandinvestmentpublisheditem": 99238,
+    "de_usermanual": 15,
+    "de_usermanualattachments": 92,
+    "de_usermanualpublisheditem": 1,
+    "de_vehicle": 164265,
+    "de_vehicledetails": 132376,
+    "de_vehiclepublisheditem": 99266
+  },
+  "de_declaration.wfstateid": [
+    {
+      "value": 7,
+      "n": 97244
+    },
+    {
+      "value": 5,
+      "n": 4971
+    },
+    {
+      "value": 37,
+      "n": 42
+    },
+    {
+      "value": 6,
+      "n": 8
+    },
+    {
+      "value": 36,
+      "n": 5
+    }
+  ],
+  "de_declaration.declarationtype": [
+    {
+      "value": 1,
+      "n": 73889
+    },
+    {
+      "value": 3,
+      "n": 14960
+    },
+    {
+      "value": 2,
+      "n": 13420
+    },
+    {
+      "value": 4,
+      "n": 1
+    }
+  ],
+  "de_declaration.declaranttype": [
+    {
+      "value": 2,
+      "n": 54711
+    },
+    {
+      "value": 1,
+      "n": 43629
+    },
+    {
+      "value": 3,
+      "n": 3929
+    },
+    {
+      "value": 4,
+      "n": 1
+    }
+  ],
+  "de_declaration.year": [
+    {
+      "value": 2022,
+      "n": 20584
+    },
+    {
+      "value": 2021,
+      "n": 20523
+    },
+    {
+      "value": 2023,
+      "n": 19781
+    },
+    {
+      "value": 2024,
+      "n": 19429
+    },
+    {
+      "value": 2025,
+      "n": 18828
+    },
+    {
+      "value": 2026,
+      "n": 3124
+    },
+    {
+      "value": 2020,
+      "n": 1
+    }
+  ],
+  "de_declaration.declarationkind": [
+    {
+      "value": 3,
+      "n": 39918
+    },
+    {
+      "value": 1,
+      "n": 16541
+    },
+    {
+      "value": 2,
+      "n": 14177
+    },
+    {
+      "value": 11,
+      "n": 7656
+    },
+    {
+      "value": 6,
+      "n": 6278
+    },
+    {
+      "value": 15,
+      "n": 3253
+    },
+    {
+      "value": 9,
+      "n": 3232
+    },
+    {
+      "value": 5,
+      "n": 3171
+    },
+    {
+      "value": 4,
+      "n": 2826
+    },
+    {
+      "value": 10,
+      "n": 2825
+    },
+    {
+      "value": 26,
+      "n": 519
+    },
+    {
+      "value": 16,
+      "n": 385
+    },
+    {
+      "value": 23,
+      "n": 340
+    },
+    {
+      "value": 17,
+      "n": 249
+    },
+    {
+      "value": 25,
+      "n": 245
+    },
+    {
+      "value": 24,
+      "n": 214
+    },
+    {
+      "value": 22,
+      "n": 211
+    },
+    {
+      "value": 21,
+      "n": 187
+    },
+    {
+      "value": 28,
+      "n": 22
+    },
+    {
+      "value": 29,
+      "n": 20
+    },
+    {
+      "value": 14,
+      "n": 1
+    }
+  ],
+  "de_declaration.positiontype": [
+    {
+      "value": 3,
+      "n": 21341
+    },
+    {
+      "value": 24,
+      "n": 16213
+    },
+    {
+      "value": 8,
+      "n": 14194
+    },
+    {
+      "value": null,
+      "n": 13655
+    },
+    {
+      "value": 20,
+      "n": 12758
+    },
+    {
+      "value": 12,
+      "n": 5566
+    },
+    {
+      "value": 5,
+      "n": 2622
+    },
+    {
+      "value": 1,
+      "n": 2486
+    },
+    {
+      "value": 2,
+      "n": 2289
+    },
+    {
+      "value": 4,
+      "n": 2049
+    },
+    {
+      "value": 9,
+      "n": 1884
+    },
+    {
+      "value": 19,
+      "n": 1870
+    },
+    {
+      "value": 15,
+      "n": 1500
+    },
+    {
+      "value": 16,
+      "n": 1016
+    },
+    {
+      "value": 22,
+      "n": 874
+    },
+    {
+      "value": 11,
+      "n": 801
+    },
+    {
+      "value": 7,
+      "n": 363
+    },
+    {
+      "value": 23,
+      "n": 226
+    },
+    {
+      "value": 6,
+      "n": 207
+    },
+    {
+      "value": 26,
+      "n": 106
+    },
+    {
+      "value": 27,
+      "n": 91
+    },
+    {
+      "value": 17,
+      "n": 85
+    },
+    {
+      "value": 21,
+      "n": 45
+    },
+    {
+      "value": 18,
+      "n": 15
+    },
+    {
+      "value": 10,
+      "n": 14
+    }
+  ],
+  "de_report.wfstateid": [
+    {
+      "value": 49,
+      "n": 611
+    },
+    {
+      "value": 14,
+      "n": 570
+    },
+    {
+      "value": 48,
+      "n": 11
+    }
+  ],
+  "de_report.reporttype": [
+    {
+      "value": 1,
+      "n": 596
+    },
+    {
+      "value": 2,
+      "n": 596
+    }
+  ],
+  "de_report.year": [
+    {
+      "value": 2025,
+      "n": 258
+    },
+    {
+      "value": 2024,
+      "n": 250
+    },
+    {
+      "value": 2023,
+      "n": 232
+    },
+    {
+      "value": 2022,
+      "n": 228
+    },
+    {
+      "value": 2021,
+      "n": 224
+    }
+  ],
+  "de_gift.wfstateid": [
+    {
+      "value": 51,
+      "n": 9
+    },
+    {
+      "value": 53,
+      "n": 5
+    },
+    {
+      "value": 52,
+      "n": 4
+    }
+  ],
+  "de_gift.receiptyear": [
+    {
+      "value": 2026,
+      "n": 18
+    }
+  ],
+  "de_gift.givertype": [
+    {
+      "value": 1,
+      "n": 14
+    },
+    {
+      "value": 2,
+      "n": 4
+    }
+  ],
+  "de_gift.giftsubclassification": [
+    {
+      "value": null,
+      "n": 9
+    },
+    {
+      "value": 4,
+      "n": 7
+    },
+    {
+      "value": 1,
+      "n": 2
+    }
+  ],
+  "de_gift.publishgift": [
+    {
+      "value": 1,
+      "n": 18
+    }
+  ],
+  "de_integrity.wfstateid": [
+    {
+      "value": 58,
+      "n": 3
+    },
+    {
+      "value": 59,
+      "n": 1
+    }
+  ],
+  "de_integrity.integritytype": [
+    {
+      "value": 1,
+      "n": 4
+    }
+  ],
+  "de_integrity.year": [
+    {
+      "value": 2026,
+      "n": 4
+    }
+  ],
+  "de_party.wfstateid": [
+    {
+      "value": 45,
+      "n": 2056
+    },
+    {
+      "value": 46,
+      "n": 47
+    }
+  ],
+  "de_party.iscloned": [
+    {
+      "value": 1,
+      "n": 1971
+    },
+    {
+      "value": 2,
+      "n": 132
+    }
+  ],
+  "de_profile.iscloned": [
+    {
+      "value": 1,
+      "n": 230847
+    },
+    {
+      "value": 2,
+      "n": 50361
+    }
+  ],
+  "de_commercialorganizationsdetails.tabtype": [
+    {
+      "value": 1,
+      "n": 8583
+    },
+    {
+      "value": 2,
+      "n": 2748
+    }
+  ],
+  "de_commercialorganizationsdetails.status": [
+    {
+      "value": 1,
+      "n": 5790
+    },
+    {
+      "value": null,
+      "n": 2877
+    },
+    {
+      "value": 3,
+      "n": 1356
+    },
+    {
+      "value": 2,
+      "n": 1308
+    }
+  ],
+  "de_commercialorganizationsdetails.datafillingoption": [
+    {
+      "value": 2,
+      "n": 5859
+    },
+    {
+      "value": 1,
+      "n": 3766
+    },
+    {
+      "value": 3,
+      "n": 1706
+    }
+  ],
+  "de_commercialorganizationsdetails.familymembertype": [
+    {
+      "value": null,
+      "n": 6952
+    },
+    {
+      "value": 1,
+      "n": 2500
+    },
+    {
+      "value": 3,
+      "n": 1853
+    },
+    {
+      "value": 4,
+      "n": 18
+    },
+    {
+      "value": 2,
+      "n": 8
+    }
+  ],
+  "de_commercialorganizationsstockdetails.status": [
+    {
+      "value": null,
+      "n": 595
+    },
+    {
+      "value": 1,
+      "n": 464
+    },
+    {
+      "value": 3,
+      "n": 93
+    },
+    {
+      "value": 2,
+      "n": 30
+    }
+  ],
+  "de_commercialorganizationsstockdetails.datafillingoption": [
+    {
+      "value": 1,
+      "n": 828
+    },
+    {
+      "value": 3,
+      "n": 354
+    }
+  ],
+  "de_contractsupon5mlndetails.status": [
+    {
+      "value": null,
+      "n": 917
+    },
+    {
+      "value": 2,
+      "n": 474
+    },
+    {
+      "value": 1,
+      "n": 430
+    },
+    {
+      "value": 3,
+      "n": 186
+    }
+  ],
+  "de_contractsupon5mlndetails.datafillingoption": [
+    {
+      "value": 3,
+      "n": 1090
+    },
+    {
+      "value": 1,
+      "n": 917
+    }
+  ],
+  "de_cryptoassetsdetails.status": [
+    {
+      "value": null,
+      "n": 62
+    }
+  ],
+  "de_cryptoassetsdetails.datafillingoption": [
+    {
+      "value": 1,
+      "n": 62
+    }
+  ],
+  "de_cryptoassetsdetails.familymembertype": [
+    {
+      "value": null,
+      "n": 62
+    }
+  ],
+  "de_expensesdetails.familymembertype": [
+    {
+      "value": null,
+      "n": 21322
+    },
+    {
+      "value": 2,
+      "n": 6
+    }
+  ],
+  "de_expensivepropertydetails.tabtype": [
+    {
+      "value": 1,
+      "n": 5016
+    },
+    {
+      "value": 5,
+      "n": 1368
+    },
+    {
+      "value": 2,
+      "n": 535
+    },
+    {
+      "value": 4,
+      "n": 249
+    },
+    {
+      "value": 3,
+      "n": 138
+    },
+    {
+      "value": 6,
+      "n": 68
+    }
+  ],
+  "de_expensivepropertydetails.status": [
+    {
+      "value": null,
+      "n": 4284
+    },
+    {
+      "value": 1,
+      "n": 2484
+    },
+    {
+      "value": 3,
+      "n": 417
+    },
+    {
+      "value": 2,
+      "n": 189
+    }
+  ],
+  "de_expensivepropertydetails.datafillingoption": [
+    {
+      "value": 1,
+      "n": 4284
+    },
+    {
+      "value": 3,
+      "n": 3090
+    }
+  ],
+  "de_expensivepropertydetails.familymembertype": [
+    {
+      "value": null,
+      "n": 7374
+    }
+  ],
+  "de_financialmeansbankaccountbalances.tabtype": [
+    {
+      "value": 1,
+      "n": 157594
+    },
+    {
+      "value": 4,
+      "n": 46435
+    },
+    {
+      "value": 2,
+      "n": 2917
+    },
+    {
+      "value": 5,
+      "n": 740
+    }
+  ],
+  "de_financialmeansbankaccountbalances.status": [
+    {
+      "value": null,
+      "n": 108550
+    },
+    {
+      "value": 1,
+      "n": 80810
+    },
+    {
+      "value": 3,
+      "n": 14422
+    },
+    {
+      "value": 2,
+      "n": 3904
+    }
+  ],
+  "de_financialmeansbankaccountbalances.datafillingoption": [
+    {
+      "value": 3,
+      "n": 99136
+    },
+    {
+      "value": 1,
+      "n": 95154
+    },
+    {
+      "value": null,
+      "n": 13396
+    }
+  ],
+  "de_financialmeansbankaccountbalances.familymembertype": [
+    {
+      "value": null,
+      "n": 207345
+    },
+    {
+      "value": 2,
+      "n": 325
+    },
+    {
+      "value": 4,
+      "n": 16
+    }
+  ],
+  "de_financialmeanscash.tabtype": [
+    {
+      "value": 1,
+      "n": 146177
+    },
+    {
+      "value": 4,
+      "n": 38547
+    },
+    {
+      "value": 2,
+      "n": 8545
+    },
+    {
+      "value": 5,
+      "n": 2028
+    }
+  ],
+  "de_financialmeanscash.status": [
+    {
+      "value": null,
+      "n": 87319
+    },
+    {
+      "value": 1,
+      "n": 74109
+    },
+    {
+      "value": 3,
+      "n": 31998
+    },
+    {
+      "value": 2,
+      "n": 1871
+    }
+  ],
+  "de_financialmeanscash.datafillingoption": [
+    {
+      "value": 3,
+      "n": 107978
+    },
+    {
+      "value": 1,
+      "n": 87319
+    }
+  ],
+  "de_financialmeanscash.familymembertype": [
+    {
+      "value": null,
+      "n": 194706
+    },
+    {
+      "value": 2,
+      "n": 579
+    },
+    {
+      "value": 4,
+      "n": 12
+    }
+  ],
+  "de_financialmeanselectronicaccountsandcryptocurrencies.tabtype": [
+    {
+      "value": 1,
+      "n": 13587
+    },
+    {
+      "value": 4,
+      "n": 3625
+    },
+    {
+      "value": 2,
+      "n": 281
+    },
+    {
+      "value": 5,
+      "n": 114
+    }
+  ],
+  "de_financialmeanselectronicaccountsandcryptocurrencies.status": [
+    {
+      "value": null,
+      "n": 8602
+    },
+    {
+      "value": 1,
+      "n": 6276
+    },
+    {
+      "value": 3,
+      "n": 2158
+    },
+    {
+      "value": 2,
+      "n": 571
+    }
+  ],
+  "de_financialmeanselectronicaccountsandcryptocurrencies.datafillingoption": [
+    {
+      "value": 3,
+      "n": 9005
+    },
+    {
+      "value": 1,
+      "n": 8602
+    }
+  ],
+  "de_financialmeanselectronicaccountsandcryptocurrencies.familymembertype": [
+    {
+      "value": null,
+      "n": 17587
+    },
+    {
+      "value": 2,
+      "n": 20
+    }
+  ],
+  "de_integritycryptoassetsdetails.status": [],
+  "de_integritycryptoassetsdetails.datafillingoption": [],
+  "de_integritycryptoassetsdetails.familymembertype": [],
+  "de_integrityeducationpostgraduate.status": [],
+  "de_integrityexpensivepropertydetails.status": [],
+  "de_integrityexpensivepropertydetails.datafillingoption": [],
+  "de_integrityexpensivepropertydetails.familymembertype": [],
+  "de_integrityfamilymemberconsents.familymembertype": [
+    {
+      "value": 3,
+      "n": 1
+    }
+  ],
+  "de_integrityfinancialmeansbankaccountbalances.status": [],
+  "de_integrityfinancialmeansbankaccountbalances.datafillingoption": [],
+  "de_integrityfinancialmeansbankaccountbalances.familymembertype": [],
+  "de_integrityfinancialmeanscash.status": [],
+  "de_integrityfinancialmeanscash.datafillingoption": [],
+  "de_integrityfinancialmeanscash.familymembertype": [],
+  "de_integrityfinancialmeanselectronicaccounts.status": [],
+  "de_integrityfinancialmeanselectronicaccounts.datafillingoption": [],
+  "de_integrityfinancialmeanselectronicaccounts.familymembertype": [],
+  "de_integrityloansanddepositsdepositdetails.status": [],
+  "de_integrityloansanddepositsdepositdetails.datafillingoption": [],
+  "de_integrityloansanddepositsdepositdetails.familymembertype": [],
+  "de_integrityloansanddepositsloandetails.status": [],
+  "de_integrityloansanddepositsloandetails.datafillingoption": [],
+  "de_integrityloansanddepositsloandetails.familymembertype": [],
+  "de_integrityrealestatedetails.status": [],
+  "de_integrityrealestatedetails.datafillingoption": [],
+  "de_integrityrealestatedetails.familymembertype": [],
+  "de_integrityrevenuesincomes.status": [],
+  "de_integrityrevenuesincomes.datafillingoption": [],
+  "de_integrityrevenuesincomes.familymembertype": [],
+  "de_integritysecurityandinvestmentdetails.status": [],
+  "de_integritysecurityandinvestmentdetails.datafillingoption": [],
+  "de_integritysecurityandinvestmentdetails.familymembertype": [],
+  "de_integrityvehicledetails.status": [],
+  "de_integrityvehicledetails.datafillingoption": [],
+  "de_integrityvehicledetails.familymembertype": [],
+  "de_loansanddepositsdepositdetails.tabtype": [
+    {
+      "value": 1,
+      "n": 31974
+    },
+    {
+      "value": 5,
+      "n": 7163
+    },
+    {
+      "value": 2,
+      "n": 1601
+    },
+    {
+      "value": 6,
+      "n": 200
+    }
+  ],
+  "de_loansanddepositsdepositdetails.status": [
+    {
+      "value": null,
+      "n": 19182
+    },
+    {
+      "value": 1,
+      "n": 14723
+    },
+    {
+      "value": 3,
+      "n": 4725
+    },
+    {
+      "value": 2,
+      "n": 2308
+    }
+  ],
+  "de_loansanddepositsdepositdetails.datafillingoption": [
+    {
+      "value": 3,
+      "n": 21756
+    },
+    {
+      "value": 1,
+      "n": 15004
+    },
+    {
+      "value": null,
+      "n": 4178
+    }
+  ],
+  "de_loansanddepositsdepositdetails.familymembertype": [
+    {
+      "value": null,
+      "n": 40296
+    },
+    {
+      "value": 2,
+      "n": 642
+    }
+  ],
+  "de_loansanddepositsloandetails.tabtype": [
+    {
+      "value": 1,
+      "n": 27330
+    },
+    {
+      "value": 5,
+      "n": 4673
+    },
+    {
+      "value": 2,
+      "n": 510
+    },
+    {
+      "value": 6,
+      "n": 99
+    }
+  ],
+  "de_loansanddepositsloandetails.status": [
+    {
+      "value": null,
+      "n": 16354
+    },
+    {
+      "value": 1,
+      "n": 11795
+    },
+    {
+      "value": 3,
+      "n": 2362
+    },
+    {
+      "value": 2,
+      "n": 2101
+    }
+  ],
+  "de_loansanddepositsloandetails.datafillingoption": [
+    {
+      "value": 3,
+      "n": 16258
+    },
+    {
+      "value": 1,
+      "n": 13257
+    },
+    {
+      "value": null,
+      "n": 3097
+    }
+  ],
+  "de_loansanddepositsloandetails.familymembertype": [
+    {
+      "value": null,
+      "n": 32611
+    },
+    {
+      "value": 2,
+      "n": 1
+    }
+  ],
+  "de_membershipinpartiesdetails.status": [
+    {
+      "value": null,
+      "n": 4320
+    },
+    {
+      "value": 1,
+      "n": 1387
+    },
+    {
+      "value": 3,
+      "n": 315
+    },
+    {
+      "value": 2,
+      "n": 88
+    }
+  ],
+  "de_membershipinpartiesdetails.datafillingoption": [
+    {
+      "value": 1,
+      "n": 4320
+    },
+    {
+      "value": 3,
+      "n": 1578
+    },
+    {
+      "value": 2,
+      "n": 212
+    }
+  ],
+  "de_noncommercialorganizationsdetails.status": [
+    {
+      "value": null,
+      "n": 2038
+    },
+    {
+      "value": 1,
+      "n": 1538
+    },
+    {
+      "value": 2,
+      "n": 484
+    },
+    {
+      "value": 3,
+      "n": 385
+    }
+  ],
+  "de_noncommercialorganizationsdetails.datafillingoption": [
+    {
+      "value": 1,
+      "n": 2038
+    },
+    {
+      "value": 2,
+      "n": 1428
+    },
+    {
+      "value": 3,
+      "n": 979
+    }
+  ],
+  "de_realestatedetails.tabtype": [
+    {
+      "value": 1,
+      "n": 335674
+    },
+    {
+      "value": 5,
+      "n": 93113
+    },
+    {
+      "value": 4,
+      "n": 22748
+    },
+    {
+      "value": 2,
+      "n": 18055
+    },
+    {
+      "value": 3,
+      "n": 7296
+    },
+    {
+      "value": 6,
+      "n": 4331
+    }
+  ],
+  "de_realestatedetails.status": [
+    {
+      "value": 1,
+      "n": 199632
+    },
+    {
+      "value": null,
+      "n": 192011
+    },
+    {
+      "value": 3,
+      "n": 74003
+    },
+    {
+      "value": 2,
+      "n": 15571
+    }
+  ],
+  "de_realestatedetails.datafillingoption": [
+    {
+      "value": 3,
+      "n": 238509
+    },
+    {
+      "value": 1,
+      "n": 192011
+    },
+    {
+      "value": 2,
+      "n": 50697
+    }
+  ],
+  "de_realestatedetails.familymembertype": [
+    {
+      "value": null,
+      "n": 480045
+    },
+    {
+      "value": 2,
+      "n": 1026
+    },
+    {
+      "value": 4,
+      "n": 146
+    }
+  ],
+  "de_revenuesincomes.status": [
+    {
+      "value": null,
+      "n": 229945
+    },
+    {
+      "value": 1,
+      "n": 164604
+    },
+    {
+      "value": 3,
+      "n": 30992
+    },
+    {
+      "value": 2,
+      "n": 2819
+    }
+  ],
+  "de_revenuesincomes.datafillingoption": [
+    {
+      "value": 2,
+      "n": 198412
+    },
+    {
+      "value": 1,
+      "n": 198147
+    },
+    {
+      "value": null,
+      "n": 31798
+    },
+    {
+      "value": 3,
+      "n": 3
+    }
+  ],
+  "de_revenuesincomes.familymembertype": [
+    {
+      "value": null,
+      "n": 426876
+    },
+    {
+      "value": 2,
+      "n": 1095
+    },
+    {
+      "value": 4,
+      "n": 389
+    }
+  ],
+  "de_revenuesprimaryincomes.status": [],
+  "de_revenuesremainingprincipals.status": [
+    {
+      "value": null,
+      "n": 192133
+    }
+  ],
+  "de_revenuesremainingprincipals.datafillingoption": [
+    {
+      "value": 1,
+      "n": 192133
+    }
+  ],
+  "de_revenuesremainingprincipals.familymembertype": [
+    {
+      "value": null,
+      "n": 192131
+    },
+    {
+      "value": 2,
+      "n": 2
+    }
+  ],
+  "de_securityandinvestmentdetails.tabtype": [
+    {
+      "value": 1,
+      "n": 8527
+    },
+    {
+      "value": 9,
+      "n": 2730
+    },
+    {
+      "value": 3,
+      "n": 2680
+    },
+    {
+      "value": 11,
+      "n": 551
+    },
+    {
+      "value": 2,
+      "n": 239
+    },
+    {
+      "value": 4,
+      "n": 40
+    },
+    {
+      "value": 10,
+      "n": 37
+    }
+  ],
+  "de_securityandinvestmentdetails.status": [
+    {
+      "value": null,
+      "n": 9445
+    },
+    {
+      "value": 1,
+      "n": 3983
+    },
+    {
+      "value": 3,
+      "n": 975
+    },
+    {
+      "value": 2,
+      "n": 401
+    }
+  ],
+  "de_securityandinvestmentdetails.datafillingoption": [
+    {
+      "value": 1,
+      "n": 9445
+    },
+    {
+      "value": 3,
+      "n": 5359
+    }
+  ],
+  "de_securityandinvestmentdetails.familymembertype": [
+    {
+      "value": null,
+      "n": 14772
+    },
+    {
+      "value": 2,
+      "n": 27
+    },
+    {
+      "value": 4,
+      "n": 5
+    }
+  ],
+  "de_vehicledetails.tabtype": [
+    {
+      "value": 1,
+      "n": 77286
+    },
+    {
+      "value": 5,
+      "n": 20381
+    },
+    {
+      "value": 2,
+      "n": 15065
+    },
+    {
+      "value": 3,
+      "n": 12186
+    },
+    {
+      "value": 4,
+      "n": 5932
+    },
+    {
+      "value": 6,
+      "n": 1526
+    }
+  ],
+  "de_vehicledetails.status": [
+    {
+      "value": 1,
+      "n": 62375
+    },
+    {
+      "value": null,
+      "n": 48502
+    },
+    {
+      "value": 3,
+      "n": 19165
+    },
+    {
+      "value": 2,
+      "n": 2334
+    }
+  ],
+  "de_vehicledetails.datafillingoption": [
+    {
+      "value": 2,
+      "n": 57571
+    },
+    {
+      "value": 1,
+      "n": 34690
+    },
+    {
+      "value": 3,
+      "n": 26303
+    },
+    {
+      "value": null,
+      "n": 13812
+    }
+  ],
+  "de_vehicledetails.familymembertype": [
+    {
+      "value": null,
+      "n": 132200
+    },
+    {
+      "value": 4,
+      "n": 107
+    },
+    {
+      "value": 2,
+      "n": 69
+    }
+  ],
+  "de_reportincomesmonetarydonationsofindividuals.identitydocumentnumber.format": [
+    {
+      "class": "other",
+      "n": 81249
+    },
+    {
+      "class": "2 letters + digits (անձնագրի ձևաչափ)",
+      "n": 21210
+    },
+    {
+      "class": "other digits",
+      "n": 16809
+    },
+    {
+      "class": "10 digits (ՀԾՀ-ի ձևաչափ)",
+      "n": 2584
+    }
+  ],
+  "de_reportincomesmembershipfees.identitydocumentnumber.format": [
+    {
+      "class": "2 letters + digits (անձնագրի ձևաչափ)",
+      "n": 918347
+    },
+    {
+      "class": "other",
+      "n": 705010
+    },
+    {
+      "class": "other digits",
+      "n": 142159
+    },
+    {
+      "class": "10 digits (ՀԾՀ-ի ձևաչափ)",
+      "n": 3139
+    }
+  ],
+  "de_reportincomesentryfees.identitydocumentnumber.format": [
+    {
+      "class": "other",
+      "n": 51
+    },
+    {
+      "class": "other digits",
+      "n": 13
+    },
+    {
+      "class": "10 digits (ՀԾՀ-ի ձևաչափ)",
+      "n": 12
+    },
+    {
+      "class": "2 letters + digits (անձնագրի ձևաչափ)",
+      "n": 5
+    }
+  ],
+  "de_reportincomesothernonmonetarydonations.identitydocumentnumber.format": [
+    {
+      "class": "other",
+      "n": 768
+    },
+    {
+      "class": "2 letters + digits (անձնագրի ձևաչափ)",
+      "n": 238
+    },
+    {
+      "class": "10 digits (ՀԾՀ-ի ձևաչափ)",
+      "n": 182
+    },
+    {
+      "class": "other digits",
+      "n": 141
+    }
+  ],
+  "de_reportincomesprohibitedmonetarydonations.identitydocumentnumber.format": [
+    {
+      "class": "other",
+      "n": 425
+    }
+  ],
+  "de_reportincomesnoncompliantandnottransferredmonetarydonations.identitydocumentnumber.format": [],
+  "de_profile.ssn.format": [
+    {
+      "class": "10 digits (ՀԾՀ-ի ձևաչափ)",
+      "n": 563857
+    },
+    {
+      "class": "empty",
+      "n": 8770
+    },
+    {
+      "class": "other",
+      "n": 289
+    },
+    {
+      "class": "other digits",
+      "n": 179
+    }
+  ],
+  "de_profile.positiontype.fill(clones)": {
+    "total": 440120,
+    "filled": 252029
+  },
+  "de_gift.amount_amd.fill": {
+    "total": 69,
+    "filled": 59
+  }
+}

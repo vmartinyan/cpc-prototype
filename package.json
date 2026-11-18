@@ -1,0 +1,29 @@
+{
+  "name": "cpc-risk-prototype",
+  "private": true,
+  "version": "0.1.0",
+  "description": "ԿԿՀ ռիսկերի վերլուծության մոդուլի նախատիպ (ցուցադրական)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test tests/",
+    "epd:schema": "node --env-file=.env.local tools/epd-schema/extract.mjs"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@fontsource/noto-sans-armenian": "^5.3.0",
+    "@mui/icons-material": "^7.3.11",
+    "@mui/material": "^7.3.11",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.2.0",
+    "pg": "^8.23.1",
+    "vite": "^7.3.8",
+    "vite-plugin-singlefile": "^2.3.4"
+  }
+}
