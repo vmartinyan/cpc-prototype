@@ -9,7 +9,7 @@
  *  • COM-16  արտաքին պատասխանը պահվում է արդյունքի հետ (snapshots)
  *  • COM-17  անհասանելի աղբյուրի դեպքում կանոնը «չի գնահատվել»
  *  • COM-18  հայտարարագրերի համախառն միավոր, մյուս ուղղություններում՝ «առնվազն մեկ կանոն»
- *  • COM-20  ձեռքով ռիսկային նշումներ
+ *  • COM-20  ձեռքով ռիսկային նշումներ (հայտարարագրերում՝ DEC-R7, ըստ տարբերակի՝ հայտարարատու առանձին կամ ընտանիքի կազմ)
  *  • DEC-04  հայտարարագրի երկու հաշվարկ՝ առանձին և ընտանիքի կազմով
  *  • DEC-10  ճշգրտումներից առաջ և հետո արդյունքներ
  */
@@ -18,35 +18,67 @@ import { lk, WF, DECLARATION_TYPE, DECLARANT_TYPE, INTEGRITY_STUDY_STATE } from 
 import { BUILTIN_RULES } from '../rules/catalog.js';
 import { PARTY_POLICY } from '../rules/parties.js';
 import { STATUS } from '../rules/common.js';
-import { computeExpense } from './annualExpense.js';
-import { variableValue, variableDefByKey } from './variables.js';
-import { parse, evaluate as evalExpr, dependencies, NotEvaluated, truthy } from './expression.js';
-import { METRICS } from './metrics.js';
+import { computeExpense, effectiveFormulas } from './annualExpense.js';
+import { indexPenalties, penaltyKey } from '../data/penalties.js';
+import { variableValue, variableDefOf } from './variables.js';
+import { parse, evaluate as evalExpr, dependencies, NotEvaluated, NotApplicable, truthy } from './expression.js';
+import { METRICS, resolveTable } from './metrics.js';
+import { print } from './conditionTree.js';
 import { ExternalContext } from '../adapters/index.js';
 import { ServiceUnavailableError, setOutages, batch } from '../adapters/transport.js';
 
 // ───────────────────────────── կանոնների կազմաձևում
 
+/**
+ * Նախասահմանված կանոնի համարժեք պայմանը կառուցիչում՝ պարամետրերի կապերով
+ * (այլ փոփոխականի կապը՝ var.<այլ>, ֆիքսված թվային արժեքը՝ թվով)
+ */
+export function builtinExpressionFor(builtin, bindings) {
+  let expr = builtin.builderExpression || '';
+  for (const p of builtin.params || []) {
+    const b = bindings?.[p.key];
+    const defVar = p.default?.var;
+    if (!defVar || !b) continue;
+    const re = new RegExp(`\\bvar\\.${defVar}\\b`, 'g');
+    if (b.var && b.var !== defVar) expr = expr.replace(re, `var.${b.var}`);
+    else if (!b.var && typeof b.value === 'number') expr = expr.replace(re, String(b.value));
+  }
+  return expr;
+}
+const normExpr = (e) => { try { return print(parse(e)); } catch { return null; } };
+
 /** Կիրառվող կանոնների ցանկ՝ ներկառուցված (կազմաձևված) + կառուցիչով ստեղծված */
 export function effectiveRules(state) {
   const cfg = state.ruleConfig || {};
-  const builtins = BUILTIN_RULES.map((r) => ({
-    ...r,
-    enabled: cfg[r.id]?.enabled ?? true,
-    weight: r.direction === 'declarations' ? cfg[r.id]?.weight ?? r.weight : undefined,
-    bindings: { ...Object.fromEntries((r.params || []).map((p) => [p.key, p.default])), ...(cfg[r.id]?.params || {}) },
-  }));
+  const compile = (expression) => {
+    try { const ast = parse(expression); return { ast, deps: dependencies(ast), parseError: null }; } catch (e) { return { ast: null, deps: null, parseError: e.message }; }
+  };
+  const builtins = BUILTIN_RULES.map((r) => {
+    const c = cfg[r.id] || {};
+    const common = {
+      id: r.id, direction: r.direction, level: r.level, srsRef: r.srsRef, requirements: r.requirements, external: r.external, partial: r.partial,
+      title: c.title || r.title,
+      criterion: c.criterion || r.criterion,
+      enabled: c.enabled ?? true,
+      weight: r.direction === 'declarations' ? c.weight ?? r.weight : undefined,
+    };
+    const bindings = { ...Object.fromEntries((r.params || []).map((p) => [p.key, p.default])), ...(c.params || {}) };
+    // Նախասահմանված կանոնի պայմանը վերասահմանված է կառուցիչով (COM-01)
+    if (c.expression) {
+      // պայմանը համարժեք է սկզբնականին. հաշվարկվում է կոդով (նույն արդյունք և մանրամասն բացատրություն)
+      if (r.builderExpression && normExpr(c.expression) && normExpr(c.expression) === normExpr(builtinExpressionFor(r, bindings))) return { ...r, ...common, bindings, override: true, expression: c.expression };
+      // պայմանը փոխված է. արդյունքը՝ պայմանով, բացատրության տվյալները (աղյուսակներ, արժեքներ)՝ կոդից
+      return { ...common, kind: 'expression', override: true, penaltyRule: r.penaltyRule, expression: c.expression, external: undefined, partial: undefined, codeRule: r, bindings, ...compile(c.expression) };
+    }
+    return { ...r, ...common, bindings };
+  });
   const copies = (state.customRules || []).filter((c) => c.kind === 'copy').map((c) => {
     const base = BUILTIN_RULES.find((b) => b.id === c.base);
     if (!base) return null;
-    return { ...base, id: c.id, title: c.title, kind: 'copy', base: c.base, srsRef: `Կրկնօրինակ՝ ${base.id} (${base.srsRef})`, enabled: c.enabled ?? true, weight: base.direction === 'declarations' ? c.weight ?? base.weight : undefined, bindings: { ...Object.fromEntries((base.params || []).map((p) => [p.key, p.default])), ...(c.params || {}) } };
+    return { ...base, id: c.id, title: c.title, criterion: c.criterion || base.criterion, kind: 'copy', base: c.base, srsRef: `Կրկնօրինակ՝ ${base.id} (${base.srsRef})`, enabled: c.enabled ?? true, weight: base.direction === 'declarations' ? c.weight ?? base.weight : undefined, bindings: { ...Object.fromEntries((base.params || []).map((p) => [p.key, p.default])), ...(c.params || {}) } };
   }).filter(Boolean);
   const custom = (state.customRules || []).filter((c) => c.kind === 'expression').map((c) => {
-    let ast = null;
-    let error = null;
-    let deps = null;
-    try { ast = parse(c.expression); deps = dependencies(ast); } catch (e) { error = e.message; }
-    return { ...c, kind: 'expression', srsRef: 'Ստեղծված է կառուցիչով (COM-01)', ast, deps, parseError: error, enabled: c.enabled ?? true, weight: c.direction === 'declarations' ? Number(c.weight) || 0 : undefined };
+    return { ...c, kind: 'expression', srsRef: 'Ստեղծված է կառուցիչով (COM-01)', ...compile(c.expression), enabled: c.enabled ?? true, weight: c.direction === 'declarations' ? Number(c.weight) || 0 : undefined };
   });
   return [...builtins, ...copies, ...custom];
 }
@@ -82,15 +114,12 @@ function runRules(rules, unit, { direction, level, state, refDate, ext }) {
   };
   const fail = (rule, e, snaps) => {
     if (e instanceof ServiceUnavailableError) return finish(rule, { status: STATUS.notEvaluated, values: [], explanation: `${e.message}. Կանոնը կգնահատվի աղբյուրի վերականգնումից հետո (COM-17)` }, snaps);
+    if (e instanceof NotApplicable) return finish(rule, { status: STATUS.notApplicable, values: [], explanation: e.reason }, snaps);
     if (e instanceof NotEvaluated) return finish(rule, { status: STATUS.notEvaluated, values: e.values || [], explanation: e.reason }, snaps);
     return finish(rule, { status: STATUS.notEvaluated, values: [], explanation: `Սխալ. ${e.message}`, error: true }, snaps);
   };
 
-  // 1) ներկառուցված կանոններ և դրանց կրկնօրինակներ
-  for (const rule of applicable.filter((r) => r.kind === 'builtin' || r.kind === 'copy')) {
-    const snaps = [];
-    const x = wrapExt(snaps);
-    const api = {
+  const apiFor = (rule, x) => ({
       ext: x,
       snap: x.snap,
       param(key) {
@@ -99,13 +128,17 @@ function runRules(rules, unit, { direction, level, state, refDate, ext }) {
         if (b === null || b === undefined || (b.value === undefined && !b.var) || b.value === '' || b.value === null) throw new NotEvaluated(`Կանոնի «${p?.label || key}» պարամետրը սահմանված չէ`);
         if (b.var) {
           const val = variableValue(vars, b.var, refDate);
-          if (val === null) throw new NotEvaluated(`Համակարգային փոփոխականը «${variableDefByKey[b.var]?.label || b.var}» սահմանված չէ (SRS բաժին 9)`);
+          if (val === null) throw new NotEvaluated(`Համակարգային փոփոխականը «${variableDefOf(state, b.var)?.label || b.var}» սահմանված չէ (SRS բաժին 9)`);
           return val;
         }
         return b.value;
       },
-    };
-    try { finish(rule, rule.evaluate(unit, api), snaps); } catch (e) { fail(rule, e, snaps); }
+  });
+  // 1) ներկառուցված կանոններ և դրանց կրկնօրինակներ
+  for (const rule of applicable.filter((r) => r.kind === 'builtin' || r.kind === 'copy')) {
+    const snaps = [];
+    const x = wrapExt(snaps);
+    try { finish(rule, rule.evaluate(unit, apiFor(rule, x)), snaps); } catch (e) { fail(rule, e, snaps); }
   }
 
   // 2) կառուցիչով ստեղծված կանոններ (շղթայավորում)
@@ -116,17 +149,29 @@ function runRules(rules, unit, { direction, level, state, refDate, ext }) {
     finish(rule, { status: STATUS.notEvaluated, values: [], explanation: 'Ցիկլային կախվածություն այլ կանոնների հետ (COM-05)', error: true }, []);
   }
   const M = METRICS[direction];
+  // մասնագետի սահմանած բարդ փոփոխականներ (doc.<key>). գնահատվում են իրենց բանաձևով՝ նույն փաստաթղթի համար
+  const derived = derivedMap(state, direction);
   for (const rule of order) {
     const snaps = [];
     if (rule.parseError) { finish(rule, { status: STATUS.notEvaluated, values: [], explanation: `Արտահայտության սխալ. ${rule.parseError}`, error: true }, snaps); continue; }
     const x = wrapExt(snaps);
+    const inner = new Map();
+    const stack = new Set();
     try {
-      const { value, trace } = evalExpr(rule.ast, {
+      const ctx = {
         resolve(ns, name) {
           if (ns === 'doc') {
             const m = M.doc.find((d) => d.key === name);
-            if (!m) throw new Error(`Անծանոթ դաշտ doc.${name}`);
-            return m.get(unit);
+            if (m) return m.get(unit);
+            const dv = derived.get(name);
+            if (!dv) throw new Error(`Անծանոթ դաշտ doc.${name}`);
+            if (stack.has(name)) throw new NotEvaluated(`Բարդ փոփոխականի ցիկլային սահմանում՝ doc.${name}`);
+            stack.add(name);
+            try {
+              const r = evalExpr(parse(dv.expression), ctx);
+              for (const [k, v] of r.trace) inner.set(k, v);
+              return r.value;
+            } finally { stack.delete(name); }
           }
           if (ns === 'ext') {
             const m = M.ext.find((d) => d.key === name);
@@ -135,7 +180,7 @@ function runRules(rules, unit, { direction, level, state, refDate, ext }) {
           }
           if (ns === 'var') {
             const val = variableValue(vars, name, refDate);
-            if (val === null) throw new NotEvaluated(`Համակարգային փոփոխականը «${variableDefByKey[name]?.label || name}» սահմանված չէ`);
+            if (val === null) throw new NotEvaluated(`Համակարգային փոփոխականը «${variableDefOf(state, name)?.label || name}» սահմանված չէ`);
             return val;
           }
           if (ns === 'rule') {
@@ -146,10 +191,26 @@ function runRules(rules, unit, { direction, level, state, refDate, ext }) {
           }
           throw new Error(ns);
         },
-        table(name) { return unit.table ? unit.table(name) : []; },
-      });
-      const values = [...trace.entries()].map(([k, val]) => ({ label: labelFor(direction, k), value: typeof val === 'boolean' ? (val ? 1 : 0) : val, kind: 'num' }));
+        table(name) {
+          const t = resolveTable(direction, name);
+          if (!t) throw new Error(`Անծանոթ աղյուսակ «${name}»`);
+          return unit.table ? unit.table(t) : [];
+        },
+      };
+      const { value, trace } = evalExpr(rule.ast, ctx);
+      for (const [k, v] of inner) if (!trace.has(k)) trace.set(k, v);
+      const values = [...trace.entries()].map(([k, val]) => ({ label: labelFor(direction, k, derived, state), value: typeof val === 'boolean' ? (val ? 1 : 0) : val, kind: 'num' }));
       finish(rule, truthy(value) ? { status: STATUS.fired, values, explanation: `Պայմանը բավարարվել է. ${rule.expression}` } : { status: STATUS.notFired, values, explanation: `Պայմանը չի բավարարվել. ${rule.expression}` }, snaps);
+      // կառուցիչով փոխված նախասահմանված կանոն. բացատրության տվյալները (համեմատման աղյուսակ, արժեքներ)՝ կոդով հաշվարկից
+      if (rule.codeRule) {
+        try {
+          const code = rule.codeRule.evaluate(unit, apiFor({ params: rule.codeRule.params, bindings: rule.bindings }, x));
+          const res = results[rule.id];
+          const extra = (code.comparison ? code.notes : code.values) || [];
+          const more = extra.filter((v) => !(typeof v.value === 'number' && values.some((e) => e.value === v.value)));
+          results[rule.id] = { ...res, comparison: code.comparison, values: code.comparison ? res.values : [...values, ...more], notes: code.comparison ? [...values, ...(code.notes || [])] : undefined };
+        } catch { /* կոդով հաշվարկը չի կիրառվում (օր.՝ «կիրառելի չէ»). մնում են պայմանի արժեքները */ }
+      }
     } catch (e) { fail(rule, e, snaps); }
   }
   return results;
@@ -157,53 +218,123 @@ function runRules(rules, unit, { direction, level, state, refDate, ext }) {
 
 const defaultLevel = (direction) => ({ declarations: 'scope', gifts: 'gift', parties: 'person', integrity: 'questionnaire' }[direction]);
 
-function labelFor(direction, key) {
+/** Մասնագետի սահմանած բարդ փոփոխականներ (state.derivedVars)՝ ըստ ուղղության */
+export const derivedMap = (state, direction) => new Map((state.derivedVars || []).filter((d) => d.direction === direction).map((d) => [d.key, d]));
+
+function labelFor(direction, key, derived, state) {
   const [ns, name] = key.split(/\.(.+)/);
   const m = METRICS[direction]?.[ns]?.find((d) => d.key === name);
   if (m) return `${key} — ${m.label}`;
-  if (ns === 'var') return `${key} — ${variableDefByKey[name]?.label || ''}`;
+  if (ns === 'doc' && derived?.get(name)) return `${key} — ${derived.get(name).label}`;
+  if (ns === 'var') return `${key} — ${variableDefOf(state, name)?.label || ''}`;
   return key;
 }
 
 const manualFor = (state, direction, unitId) => (state.manualFlags || []).filter((f) => f.direction === direction && f.unitId === unitId);
+/**
+ * Ձեռքով ռիսկային նշման (DEC-R7) հաշվարկ՝ ըստ ընտրված տարբերակի. «individual»՝ հայտարարատուի առանձին հաշվարկ,
+ * «family»՝ ընտանիքի ընդհանուր կազմ։ Ընտանիքի անդամների առանձին հաշվարկներին չի գումարվում։ Նախկին նշումները (առանց
+ * տարբերակի) համարվում են հայտարարատուի առանձին հաշվարկի համար. ընտանիքի կազմով հաշվարկի բացակայության դեպքում՝ նույնպես
+ */
+export const manualScopeOf = (m) => (m.scope === 'family' ? 'family' : 'individual');
+const manualWeightFor = (manual, scope, isDeclarantScope, hasFamily) => manual
+  .filter((m) => (scope.kind === 'family' ? manualScopeOf(m) === 'family' : isDeclarantScope && (manualScopeOf(m) === 'individual' || !hasFamily)))
+  .reduce((a, m) => a + m.weight, 0);
 
 // ───────────────────────────── հայտարարագրեր
 
 const { declaration: DWF } = WF;
 
-/** Անձի (կենդանի պրոֆիլի instanceid) ընթացիկ, ներկայացված տարեկան հայտարարագրերը */
-export function declarationsOfPerson(liveInstanceId) {
-  return current('de_declaration').filter((d) => d.originaldeclarant === liveInstanceId && d.wfstateid !== DWF.draft && d.declarationtype === DECLARATION_TYPE.yearly);
+/**
+ * Վերլուծվում են միայն «Տարեկան» հայտարարագրերը («Պաշտոնը ստանձնելու» և «Պաշտոնը դադարեցնելու» տեսակների մոտեցումը
+ * քննարկվում է)։ Մոդուլը վերցնում է բոլոր կարգավիճակները (DEC-R3, DEC-R4-ի համար). «ներկայացված» է համարվում միայն
+ * հրապարակված հայտարարագիրը, և բովանդակային կանոններով գնահատվում են միայն հրապարակվածները։
+ */
+const isPublished = (d) => d.wfstateid === DWF.published;
+
+/**
+ * Անձի (կենդանի պրոֆիլի instanceid) ընթացիկ, ներկայացված (ոչ սևագիր) տարեկան հայտարարագրերը։
+ * publishedOnly՝ միայն հրապարակվածները (հայտարարագրերի ուղղություն). մյուս ուղղությունների
+ * համեմատություններում (նվերներ, կուսակցություններ, բարեվարքություն) կարգավիճակի կանոնը չի փոխվել։
+ */
+export function declarationsOfPerson(liveInstanceId, { publishedOnly = false } = {}) {
+  return current('de_declaration').filter((d) => d.originaldeclarant === liveInstanceId && (publishedOnly ? isPublished(d) : d.wfstateid !== DWF.draft) && d.declarationtype === DECLARATION_TYPE.yearly);
 }
 
-function buildDeclarationScopes(d, corrections) {
-  const linked = current('de_declaration').filter((x) => x.parentdeclaration === d.instanceid);
+/**
+ * Ընտանիքի կազմ (DEC-04, DEC-05).
+ *   • linked՝ ընտանիքի անդամների առանձին հրապարակված հայտարարագրերը (declaranttype = 2, parentdeclaration = d)
+ *   • officials՝ պրոֆիլում նշված ընտանիքի անդամներ, որոնք իրենք էլ պաշտոնատար անձ են. EPD-ում նրանք ներկայացնում են միայն
+ *     իրենց պաշտոնյայի հայտարարագիրը (ստուգված է EPD-ի տվյալներով. 1 522 զույգից միայն 35-ն ունեն նաև կապված հայտարարագիր).
+ *     ընտանիքի կազմով հաշվարկում վերցվում է նույն տարվա հրապարակված տարեկան հայտարարագիրը, միայն իր տողերը
+ *     (familymembertype դատարկ), եթե կապված հայտարարագիր չունի. պաշտոնյայի հայտարարագրում այդ անդամի տողերը
+ *     (եթե կան) այդ դեպքում չեն հաշվվում՝ կրկնակի հաշվարկից խուսափելու համար
+ */
+export function familyComposition(d) {
+  const linked = current('de_declaration').filter((x) => x.parentdeclaration === d.instanceid && isPublished(x));
   const fam = profileChildren('de_profilefamilymembers', d.declarant);
+  const officials = [];
+  for (const f of fam) {
+    const live = liveProfileOf(byInstance('de_profile', f.profile))?.instanceid;
+    if (!live || linked.some((l) => l.originaldeclarant === live)) continue;
+    const od = current('de_declaration').find((x) => x.originaldeclarant === live && x.year === d.year && x.declarationtype === DECLARATION_TYPE.yearly && x.declaranttype !== DECLARANT_TYPE.family && isPublished(x));
+    if (od) officials.push({ decl: od, memberProfile: f.profile, type: f.type });
+  }
+  const officialDecls = new Set(officials.map((o) => o.decl));
+  const excludedProfiles = new Set(officials.map((o) => o.memberProfile));
+  const filter = (r, decl) => (officialDecls.has(decl) ? r.familymembertype === null : decl === d ? !excludedProfiles.has(r.profile) : true);
+  return { linked, fam, officials, decls: [d, ...linked, ...officials.map((o) => o.decl)], filter };
+}
+
+/**
+ * Նախորդ բոլոր տարիների հրապարակված տարեկան հայտարարագրերի խնայողություն՝ Σ (եկամուտ − ընթացիկ տարեկան ծախս, 4.1) (DEC-R6 (գ)).
+ * Նախորդ հայտարարագիր չլինելու դեպքում՝ 0։ Առանձին հաշվարկում՝ անձի սեփական տողերը, ընտանիքի կազմով՝ նախորդ տարիների ընտանիքի կազմը
+ */
+function previousSavings(person, year, corrections, family, formulas) {
+  const prev = declarationsOfPerson(person, { publishedOnly: true }).filter((p) => p.year < year && (!family || p.declaranttype !== DECLARANT_TYPE.family)).sort((a, b) => a.year - b.year);
+  const years = prev.map((p) => {
+    const fc = family ? familyComposition(p) : null;
+    const e = computeExpense(fc ? fc.decls : [p], fc ? fc.filter : (r) => r.familymembertype === null, corrections, formulas);
+    return { year: p.year, code: p.code, income: e.E, expense: e.annual, savings: e.E - e.annual };
+  });
+  return { years, total: years.reduce((a, y) => a + y.savings, 0) };
+}
+
+function buildDeclarationScopes(d, corrections, checkFor = () => undefined, formulas) {
+  const { linked, fam, officials, decls: famDecls, filter: famFilter } = familyComposition(d);
   const scopes = [];
-  const mk = (s) => ({ ...s, year: d.year, exp: computeExpense(s.decls, s.filter, corrections), table: null });
-  scopes.push(mk({ key: `ind:${d.originaldeclarant}`, kind: 'individual', label: `${profileName(d.originaldeclarant)} (հայտարարատու, առանձին)`, decls: [d], filter: (r) => r.familymembertype === null, persons: 1, profiles: [d.originaldeclarant] }));
+  const mk = (s) => {
+    let prev = null;
+    return { ...s, year: d.year, exp: computeExpense(s.decls, s.filter, corrections, formulas), table: null,
+      get prevSavings() { return (prev ||= previousSavings(s.decls[0].originaldeclarant, d.year, corrections, s.kind === 'family', formulas)); } };
+  };
+  scopes.push(mk({ key: `ind:${d.originaldeclarant}`, kind: 'individual', label: `${profileName(d.originaldeclarant)} (հայտարարատու, առանձին)`, decls: [d], filter: (r) => r.familymembertype === null, persons: 1, profiles: [d.originaldeclarant], penaltyCheck: checkFor(d) }));
   for (const l of linked) {
     const t = fam.find((f) => liveProfileOf(byInstance('de_profile', f.profile))?.instanceid === l.originaldeclarant)?.type;
-    scopes.push(mk({ key: `ind:${l.originaldeclarant}`, kind: 'individual', label: `${profileName(l.originaldeclarant)} (${lk('c_familymembertype', t) || 'ընտանիքի անդամ'}, առանձին հայտարարագիր)`, decls: [l], filter: (r) => r.familymembertype === null, persons: 1, profiles: [l.originaldeclarant] }));
+    scopes.push(mk({ key: `ind:${l.originaldeclarant}`, kind: 'individual', label: `${profileName(l.originaldeclarant)} (${lk('c_familymembertype', t) || 'ընտանիքի անդամ'}, առանձին հայտարարագիր)`, decls: [l], filter: (r) => r.familymembertype === null, persons: 1, profiles: [l.originaldeclarant], penaltyCheck: checkFor(l) }));
   }
   if (fam.length) {
     const memberLive = fam.map((f) => liveProfileOf(byInstance('de_profile', f.profile))?.instanceid).filter(Boolean);
-    scopes.push(mk({ key: 'family', kind: 'family', label: `Ընտանիքի ընդհանուր կազմ (${fam.length + 1} անձ)`, decls: [d, ...linked], filter: () => true, persons: fam.length + 1, profiles: [d.originaldeclarant, ...memberLive] }));
+    scopes.push(mk({ key: 'family', kind: 'family', label: `Ընտանիքի ընդհանուր կազմ (${fam.length + 1} անձ)`, decls: famDecls, filter: famFilter, persons: fam.length + 1, profiles: [d.originaldeclarant, ...memberLive] }));
   }
   for (const s of scopes) s.table = (name) => s.exp.rows(name);
-  return { scopes, linked, fam };
+  return { scopes, linked, fam, officials };
 }
 
 function evaluateDeclarations(state, rules) {
+  const formulas = effectiveFormulas(state);
   const units = [];
-  // Գնահատման միավոր՝ պաշտոնատար անձի (և կուսակցության ղեկավարի) տարեկան հայտարարագիրը. ընտանիքի անդամների հայտարարագրերը կապվում են parentdeclaration-ով (DEC-05)
-  const roots = current('de_declaration').filter((d) => d.declarationtype === DECLARATION_TYPE.yearly && d.declaranttype !== DECLARANT_TYPE.family);
+  // Տույժերի ֆայլ (COM-11). տույժը հայտարարագրի հետ կապվում է ՀԾՀ + տարի + տեսակ (DEC-R3, DEC-R4)
+  const penaltiesLoaded = Array.isArray(state.penalties?.records);
+  const penIndex = indexPenalties(state.penalties?.records);
+  const penaltiesFor = (ssn, year, type) => (ssn ? penIndex.get(penaltyKey(ssn, year, type)) || [] : []);
+  const checkFor = (d) => ({ loaded: penaltiesLoaded, decl: d, status: isPublished(d) ? 'published' : 'not_published', records: penaltiesFor(d.ssn, d.year, d.declarationtype) });
+  const allDecls = current('de_declaration').filter((d) => d.declarationtype === DECLARATION_TYPE.yearly);
+
+  // Գնահատման միավոր՝ պաշտոնատար անձի (և կուսակցության ղեկավարի) հրապարակված տարեկան հայտարարագիրը. ընտանիքի անդամների հայտարարագրերը կապվում են parentdeclaration-ով (DEC-05)
+  const roots = allDecls.filter((d) => d.declaranttype !== DECLARANT_TYPE.family && isPublished(d));
   for (const d of roots) {
     const base = { id: d.instanceid, code: d.code, decl: d, profile: byInstance('de_profile', d.originaldeclarant), year: d.year };
-    if (d.wfstateid === DWF.draft) {
-      units.push({ ...base, draft: true, overdue: current('de_declarationoverdueact').filter((a) => a.declarationnumber === d.code), scopes: [], score: null, risky: false, manual: manualFor(state, 'declarations', d.instanceid), linked: [] });
-      continue;
-    }
     const refDate = `${d.year}-12-31`;
     const threshold = variableValue(state.variables || {}, 'dec_threshold', refDate);
     const maxManual = variableValue(state.variables || {}, 'manual_max_weight', refDate) ?? 25;
@@ -211,11 +342,13 @@ function evaluateDeclarations(state, rules) {
     const manualWeight = manual.reduce((s, m) => s + m.weight, 0);
 
     const run = (corrections) => {
-      const built = buildDeclarationScopes(d, corrections);
+      const built = buildDeclarationScopes(d, corrections, checkFor, formulas);
       const ext = new ExternalContext({ direction: 'declarations', unit: d.code });
+      const hasFamily = built.scopes.some((x) => x.kind === 'family');
       for (const s of built.scopes) {
         s.results = runRules(rules, s, { direction: 'declarations', level: 'scope', state, refDate, ext });
-        s.score = Object.values(s.results).filter((r) => r.status === STATUS.fired).reduce((a, r) => a + (Number(r.weight) || 0), 0) + manualWeight;
+        s.manualWeight = manualWeightFor(manual, s, s === built.scopes[0], hasFamily);
+        s.score = Object.values(s.results).filter((r) => r.status === STATUS.fired).reduce((a, r) => a + (Number(r.weight) || 0), 0) + s.manualWeight;
         s.risky = threshold !== null && s.score >= threshold;
       }
       return built;
@@ -226,6 +359,36 @@ function evaluateDeclarations(state, rules) {
     const original = Object.keys(myCorrections).length ? run({}) : null;
     const score = Math.max(...cur.scopes.map((s) => s.score));
     units.push({ ...base, ...cur, original, corrections: myCorrections, threshold, manual, manualWeight, score, risky: cur.scopes.some((s) => s.risky) });
+  }
+
+  // Ներկայացված (հրապարակված) չլինող հայտարարագրեր և տույժերի ֆայլում առկա, բայց EPD-ում բացակայող հայտարարագրեր.
+  // գնահատվում են միայն տույժերի կանոններով (DEC-R3, DEC-R4)
+  const penaltyRules = rules.filter((r) => r.penaltyRule);
+  const statusUnit = ({ id, code, decl, profile, year, declarationType, label, check }) => {
+    const refDate = `${year}-12-31`;
+    const threshold = variableValue(state.variables || {}, 'dec_threshold', refDate);
+    const maxManual = variableValue(state.variables || {}, 'manual_max_weight', refDate) ?? 25;
+    const manual = manualFor(state, 'declarations', id).map((m) => ({ ...m, weight: Math.min(Number(m.weight) || 0, maxManual) }));
+    const manualWeight = manual.reduce((a, m) => a + m.weight, 0);
+    const scope = { key: `ind:${id}`, kind: 'individual', statusOnly: true, label, year, decls: decl ? [decl] : [], persons: 1, profiles: [], exp: null, table: () => [], penaltyCheck: check };
+    scope.results = runRules(penaltyRules, scope, { direction: 'declarations', level: 'scope', state, refDate, ext: new ExternalContext({ direction: 'declarations', unit: code }) });
+    scope.manualWeight = manualWeight;
+    scope.score = Object.values(scope.results).filter((r) => r.status === STATUS.fired).reduce((a, r) => a + (Number(r.weight) || 0), 0) + manualWeight;
+    scope.risky = threshold !== null && scope.score >= threshold;
+    return { id, code, decl, profile, year, declarationType, statusOnly: true, missing: !decl, penalties: check.records, scopes: [scope], linked: [], fam: [], original: null, corrections: {}, threshold, manual, manualWeight, score: scope.score, risky: scope.risky };
+  };
+  for (const d of allDecls.filter((x) => !isPublished(x))) {
+    const profile = byInstance('de_profile', d.originaldeclarant);
+    units.push(statusUnit({ id: d.instanceid, code: d.code, decl: d, profile, year: d.year, declarationType: d.declarationtype, label: `${profileName(d.originaldeclarant)} (${lk('c_declaranttype', d.declaranttype)}, ${lk('c_wfstate', d.wfstateid)})`, check: checkFor(d) }));
+  }
+  const inEpd = new Set(allDecls.filter((d) => d.ssn).map((d) => penaltyKey(d.ssn, d.year, d.declarationtype)));
+  for (const [key, records] of penIndex) {
+    if (inEpd.has(key) || records[0].declarationType !== DECLARATION_TYPE.yearly) continue;
+    const r = records[0];
+    const live = liveProfileBySsn(r.ssn);
+    const profile = live ? { ...live } : { firstname: r.firstName, lastname: r.lastName, middlename: r.patronymic, ssn: r.ssn };
+    const id = `pen-${r.ssn}-${r.year}-${r.declarationType}`;
+    units.push(statusUnit({ id, code: `ՎԻՎ Ա ${r.vivNumber || '—'}`, decl: null, profile, year: r.year, declarationType: r.declarationType, label: `${profile.firstname} ${profile.lastname} (հայտարարագիր չկա, տույժ)`, check: { loaded: true, decl: null, status: 'missing', records } }));
   }
   return units;
 }

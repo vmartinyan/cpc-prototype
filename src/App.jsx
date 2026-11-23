@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import {
   AppBar, Box, Drawer, IconButton, List, ListItemButton, ListItemIcon, ListItemText, Toolbar, Typography, TextField, MenuItem,
-  Divider, ListSubheader, useMediaQuery, Chip, Tooltip, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions,
+  Divider, ListSubheader, useMediaQuery, Chip, Tooltip, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Collapse,
 } from '@mui/material';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useTheme } from '@mui/material/styles';
 import MenuIcon from '@mui/icons-material/Menu';
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
@@ -13,26 +15,35 @@ import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import RuleOutlinedIcon from '@mui/icons-material/RuleOutlined';
 import TuneOutlinedIcon from '@mui/icons-material/TuneOutlined';
 import HubOutlinedIcon from '@mui/icons-material/HubOutlined';
-import ChecklistOutlinedIcon from '@mui/icons-material/ChecklistOutlined';
+import FolderOpenOutlinedIcon from '@mui/icons-material/FolderOpenOutlined';
 import ManageAccountsOutlinedIcon from '@mui/icons-material/ManageAccountsOutlined';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { layout } from './theme/tokens.js';
 import { useStore, ROLES, can } from './engine/store.js';
 import Dashboard from './pages/Dashboard.jsx';
-import { DeclarationsList, DeclarationDetail } from './pages/Declarations.jsx';
+import { DeclarationsList, DeclarationDetail, DeclarationTypePage } from './pages/Declarations.jsx';
+import { DECLARATION_TYPE } from './data/epd/classifiers.js';
 import { PartiesList, PartyDetail, PartyPersonDetail } from './pages/Parties.jsx';
 import { GiftsList, GiftDetail } from './pages/Gifts.jsx';
 import { IntegrityList, IntegrityDetail } from './pages/Integrity.jsx';
 import RulesPage from './pages/Rules.jsx';
 import VariablesPage from './pages/Variables.jsx';
 import ExternalPage from './pages/External.jsx';
-import StatusPage from './pages/Status.jsx';
+import ExternalFilesPage from './pages/ExternalFiles.jsx';
 import UsersPage from './pages/Users.jsx';
+import { OpenQuestionsButton } from './components/OpenQuestions.jsx';
 
 const NAV = [
   { group: 'Վերլուծություն' },
   { path: '/', label: 'Վահանակ', icon: DashboardOutlinedIcon, perm: 'dashboard' },
-  { path: '/declarations', label: 'Հայտարարագրեր', icon: DescriptionOutlinedIcon, perm: 'view_docs' },
+  {
+    path: '/declarations', label: 'Հայտարարագրեր', icon: DescriptionOutlinedIcon, perm: 'view_docs',
+    children: [
+      { path: '/declarations', label: 'Տարեկան' },
+      { path: '/declarations/assumption', label: 'Պաշտոնը ստանձնելու' },
+      { path: '/declarations/termination', label: 'Պաշտոնը դադարեցնելու' },
+    ],
+  },
   { path: '/parties', label: 'Կուսակցություններ', icon: GroupsOutlinedIcon, perm: 'view_docs' },
   { path: '/gifts', label: 'Նվերների ձևաթղթեր', icon: CardGiftcardOutlinedIcon, perm: 'view_docs' },
   { path: '/integrity', label: 'Բարեվարքություն', icon: FactCheckOutlinedIcon, perm: 'view_docs' },
@@ -40,9 +51,20 @@ const NAV = [
   { path: '/rules', label: 'Կանոններ', icon: RuleOutlinedIcon, perm: 'view_rules' },
   { path: '/variables', label: 'Փոփոխականներ', icon: TuneOutlinedIcon, perm: 'view_rules' },
   { path: '/external', label: 'Արտաքին համակարգեր', icon: HubOutlinedIcon, perm: 'view_rules' },
-  { path: '/status', label: 'Կանոնների ամփոփում', icon: ChecklistOutlinedIcon, perm: 'view_rules' },
+  { path: '/files', label: 'Արտաքին ֆայլեր', icon: FolderOpenOutlinedIcon, perm: 'view_docs', children: [{ path: '/files/penalties', label: 'Տույժեր' }] },
   { path: '/users', label: 'Օգտատերեր', icon: ManageAccountsOutlinedIcon, perm: 'users' },
 ];
+
+/** Մայր կետի ենթակետերից որևէ մեկի էջն է բաց */
+const navChildActive = (parent, path) => parent.children.some((c) => path === c.path || path.startsWith(`${c.path}/`)) || path === parent.path || path.startsWith(`${parent.path}/`);
+
+/** Ենթակետի ընտրվածություն. ամենաերկար համընկնող հասցեն (օր.՝ /declarations/123 → «Տարեկան») */
+function navChildSelected(parent, child, path) {
+  const matches = parent.children.filter((c) => path === c.path || path.startsWith(`${c.path}/`));
+  if (!matches.length && path === parent.path) return child === parent.children[0];
+  const best = matches.sort((a, b) => b.path.length - a.path.length)[0];
+  return best?.path === child.path;
+}
 
 function useHashPath() {
   const get = () => (window.location.hash.replace(/^#/, '') || '/');
@@ -59,16 +81,21 @@ function route(path) {
   const seg = path.split('/').filter(Boolean).map(decodeURIComponent);
   switch (seg[0]) {
     case undefined: return { el: <Dashboard />, perm: 'dashboard' };
-    case 'declarations': return { el: seg[1] ? <DeclarationDetail key={seg[1]} id={seg[1]} tab={seg[2]} /> : <DeclarationsList />, perm: 'view_docs' };
+    case 'declarations':
+      if (seg[1] === 'assumption') return { el: <DeclarationTypePage key="a" type={DECLARATION_TYPE.assumption} />, perm: 'view_docs' };
+      if (seg[1] === 'termination') return { el: <DeclarationTypePage key="t" type={DECLARATION_TYPE.termination} />, perm: 'view_docs' };
+      return { el: seg[1] ? <DeclarationDetail key={seg[1]} id={seg[1]} tab={seg[2]} /> : <DeclarationsList />, perm: 'view_docs' };
     case 'parties':
       if (seg[1] === 'person') return { el: <PartyPersonDetail id={seg.slice(2).join('/')} />, perm: 'view_docs' };
       return { el: seg[1] ? <PartyDetail id={seg[1]} /> : <PartiesList />, perm: 'view_docs' };
     case 'gifts': return { el: seg[1] ? <GiftDetail id={seg[1]} /> : <GiftsList />, perm: 'view_docs' };
     case 'integrity': return { el: seg[1] ? <IntegrityDetail id={seg[1]} /> : <IntegrityList />, perm: 'view_docs' };
     case 'rules': return { el: <RulesPage tab={seg[1]} editId={seg[2]} />, perm: 'view_rules' };
-    case 'variables': return { el: <VariablesPage />, perm: 'view_rules' };
+    case 'variables': return { el: <VariablesPage tab={seg[1]} />, perm: 'view_rules' };
     case 'external': return { el: <ExternalPage />, perm: 'view_rules' };
-    case 'status': return { el: <StatusPage />, perm: 'view_rules' };
+    case 'files':
+      if (!seg[1] || seg[1] === 'penalties') return { el: <ExternalFilesPage />, perm: 'view_docs' };
+      return { el: <Typography>Էջը չի գտնվել</Typography>, perm: null };
     case 'users': return { el: <UsersPage />, perm: 'users' };
     default: return { el: <Typography>Էջը չի գտնվել</Typography>, perm: null };
   }
@@ -84,6 +111,9 @@ export default function App() {
   const { el, perm } = route(path);
   const allowed = !perm || can(state.role, perm);
   const outages = Object.entries(state.outages).filter(([, v]) => v).length;
+  // ենթամենյուներ. բացվում են մայր կետը սեղմելիս, իսկ ենթակետի էջը բաց լինելու դեպքում մնում են բաց
+  const [openNav, setOpenNav] = useState({});
+  useEffect(() => { setOpenNav({}); }, [path]);
 
   const drawer = (
     <Box>
@@ -92,16 +122,44 @@ export default function App() {
         {NAV.map((n, i) => n.group ? (
           <ListSubheader key={i} sx={{ bgcolor: 'transparent', lineHeight: '36px', mt: i ? 1 : 0 }}>{n.group}</ListSubheader>
         ) : can(state.role, n.perm) && (
-          <ListItemButton key={n.path} selected={n.path === '/' ? path === '/' : path.startsWith(n.path)} onClick={() => { window.location.hash = n.path; setMobileOpen(false); }} sx={{ mx: 1, borderRadius: 1 }}>
-            <ListItemIcon sx={{ minWidth: 36 }}><n.icon fontSize="small" /></ListItemIcon>
-            <ListItemText primary={n.label} />
-          </ListItemButton>
+          <Box key={n.path}>
+            {(() => {
+              const active = n.children && navChildActive(n, path);
+              const open = !!n.children && (active || !!openNav[n.path]);
+              return (
+                <>
+                  <ListItemButton
+                    selected={!n.children && (n.path === '/' ? path === '/' : path.startsWith(n.path))}
+                    onClick={() => {
+                      if (n.children) { if (!active) setOpenNav((o) => ({ ...o, [n.path]: !o[n.path] })); return; }
+                      window.location.hash = n.path; setMobileOpen(false);
+                    }}
+                    sx={{ mx: 1, borderRadius: 1 }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 36 }}><n.icon fontSize="small" color={active ? 'primary' : undefined} /></ListItemIcon>
+                    <ListItemText primary={n.label} slotProps={{ primary: { sx: active ? { fontWeight: 600, color: 'primary.main' } : undefined } }} />
+                    {n.children && (open ? <ExpandLessIcon fontSize="small" sx={{ color: 'text.secondary' }} /> : <ExpandMoreIcon fontSize="small" sx={{ color: 'text.secondary' }} />)}
+                  </ListItemButton>
+                  {n.children && (
+                    <Collapse in={open} timeout="auto" unmountOnExit>
+                      {n.children.map((c) => (
+                        <ListItemButton key={c.path} selected={navChildSelected(n, c, path)} onClick={() => { window.location.hash = c.path; setMobileOpen(false); }} sx={{ mx: 1, pl: 6.5, py: 0.25, borderRadius: 1 }}>
+                          <ListItemText primary={c.label} slotProps={{ primary: { variant: 'body2' } }} />
+                        </ListItemButton>
+                      ))}
+                    </Collapse>
+                  )}
+                </>
+              );
+            })()}
+          </Box>
         ))}
       </List>
       <Divider sx={{ my: 1 }} />
       <Typography variant="caption" color="text.secondary" sx={{ px: 2, display: 'block' }}>
         Ցուցադրական նախատիպ. տվյալները mock են (EPD և պետական շտեմարաններ), իրական ինտեգրում չկա։
       </Typography>
+      <Box sx={{ mt: 1.5 }}><OpenQuestionsButton /></Box>
     </Box>
   );
 

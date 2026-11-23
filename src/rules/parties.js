@@ -45,6 +45,7 @@ export const partyRules = [
     criterion: 'Ֆիզիկական անձի կողմից մեկ կամ մի քանի կուսակցություններին հաշվետու տարում կատարված դրամական և ոչ դրամական նվիրատվությունների, անդամավճարների և մուտքի վճարների ընդհանուր չափը գերազանցում է 10 մլն ՀՀ դրամը',
     srsRef: 'Բաժին 5, կանոն 1',
     requirements: ['PAR-01', 'PAR-02', 'PAR-03', 'PAR-05'],
+    builderExpression: 'doc.total_payments > var.party_max_donation',
     params: [{ key: 'max', label: 'Նվիրատվության առավելագույն չափ', unit: 'AMD', default: { var: 'party_max_donation' } }],
     caveats: [
       'Միավորումը՝ ըստ identitydocumentnumber, իսկ դատարկ լինելու դեպքում՝ անուն-ազգանվամբ. նույն անձը տարբեր գրառումներում տարբեր կերպ լրացված լինելու դեպքում չի միավորվում (Q-44)',

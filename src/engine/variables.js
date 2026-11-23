@@ -6,18 +6,22 @@
  * ԿԱՐԵՎՈՐ. այն փոփոխականները, որոնց արժեքը SRS-ում տրված չէ («ԿԿՀ-ից», «Արժեքը սահմանված չէ»),
  * թողնված են դատարկ։ Դրանցից կախված կանոնները ստանում են «չի գնահատվել» կարգավիճակ, մինչև
  * կանոնների պատասխանատուն արժեք չմուտքագրի «Փոփոխականներ» էջում։
+ * Բացառություն՝ կենսաապահովման նվազագույն բյուջե. նախասահմանված են նվազագույն սպառողական զամբյուղի արժեքները։
  */
+
+/** Կենսաապահովման նվազագույն բյուջե (1 անձ, ամսական)՝ ըստ տարիների */
+const MIN_LIVING_BUDGET = [[2023, 75326], [2024, 75529], [2025, 78836], [2026, 85091]].map(([y, v]) => ({ value: v, effectiveFrom: `${y}-01-01` }));
 
 export const VARIABLE_DEFS = [
   // ── Հայտարարագրեր
   { key: 'min_living_budget', direction: 'declarations', label: 'Կենսաապահովման նվազագույն բյուջե (1 անձի հաշվով, ամսական)', unit: 'AMD', type: 'number',
-    history: [], srsValue: 'ԿԿՀ-ից (արժեքը SRS-ում տրված չէ)', note: 'Տարեկան է, ունի գործողության սկզբի ամսաթիվ, հաշվարկն օգտագործում է հաշվետու տարվա արժեքը։ Ընտանիքի կազմով հաշվարկում բազմապատկվում է անձանց թվով (DEC-02)։ Ամսական/տարեկան լինելը SRS-ում ճշտված չէ. նախատիպում համեմատվում է միջին ամսական ծախսի (ՄԱԾ) հետ։', usedBy: ['DEC-R1'] },
+    history: MIN_LIVING_BUDGET, srsValue: 'ԿԿՀ-ից (արժեքը SRS-ում տրված չէ)', note: 'Նախասահմանված արժեքները (2023–2026՝ 75 326, 75 529, 78 836, 85 091 ֏) վերցված են «Նվազագույն սպառողական զամբյուղ» փոփոխականից՝ Q-47(բ) վարկածով, որ դրանք նույն մեծությունն են։ Տարեկան է, ունի գործողության սկզբի ամսաթիվ, հաշվարկն օգտագործում է հաշվետու տարվա արժեքը։ Ընտանիքի կազմով հաշվարկում բազմապատկվում է անձանց թվով (DEC-02)։ Ամսական/տարեկան լինելը SRS-ում ճշտված չէ. նախատիպում DEC-R1-ը ստուգում է՝ ԸՏԾ − բյուջե × 12 × անձանց թիվ ≤ 0։', usedBy: ['DEC-R1'] },
   { key: 'dec_threshold', direction: 'declarations', label: 'Հայտարարագրի վերլուծության շեմ (համախառն միավոր)', unit: 'միավոր', type: 'number',
     history: [{ value: 60, effectiveFrom: '2020-01-01' }], srsValue: '60 միավոր', note: 'Կիրառվում է առանձին և ընդհանուր ընտանիքի կազմով հաշվարկի վրա (DEC-04)', usedBy: ['համախառն միավոր'] },
-  { key: 'cash_threshold', direction: 'declarations', label: 'Կանխիկի շեմ', unit: 'AMD', type: 'number',
-    history: [{ value: 5000000, effectiveFrom: '2020-01-01' }], srsValue: '5 մլն ՀՀ դրամ', note: 'Կանխիկի չափորոշիչ (հայտարարագրեր, չիրականացված) և բարեվարքության չափորոշիչ 11', usedBy: ['INT-R11'] },
+  { key: 'cash_threshold', direction: 'declarations', directions: ['declarations', 'integrity'], label: 'Կանխիկի շեմ', unit: 'AMD', type: 'number',
+    history: [{ value: 5000000, effectiveFrom: '2020-01-01' }], srsValue: '5 մլն ՀՀ դրամ', note: 'Կանխիկի չափորոշիչ (DEC-R6) և բարեվարքության չափորոշիչ 11', usedBy: ['DEC-R6', 'INT-R11'] },
   { key: 'cash_ratio', direction: 'declarations', label: 'Կանխիկի և անկանխիկ միջոցների հարաբերակցություն', unit: 'անգամ', type: 'number',
-    history: [{ value: 3, effectiveFrom: '2020-01-01' }], srsValue: '3 անգամ', note: 'Կանխիկի չափորոշիչ (չիրականացված, Q-25)', usedBy: [] },
+    history: [{ value: 3, effectiveFrom: '2020-01-01' }], srsValue: '3 անգամ', note: 'Կանխիկի չափորոշիչ (DEC-R6)', usedBy: ['DEC-R6'] },
   { key: 'manual_max_weight', direction: 'declarations', label: 'Ձեռքով դրվող ռիսկային նշման առավելագույն քաշ', unit: 'միավոր', type: 'number',
     history: [{ value: 25, effectiveFrom: '2020-01-01' }], srsValue: '25', note: 'COM-20', usedBy: ['DEC-R7'] },
 
@@ -71,6 +75,40 @@ export const VARIABLE_DEFS = [
 
 export const variableDefByKey = Object.fromEntries(VARIABLE_DEFS.map((v) => [v.key, v]));
 
+/**
+ * Բոլոր համակարգային փոփոխականները. կոդով սահմանվածները (VARIABLE_DEFS) և մասնագետի ստեղծածները (state.customVariableDefs,
+ * COM-03)։ Մասնագետի ստեղծածի արժեքների պատմությունը պահվում է state.variables-ում, ինչպես մյուսներինը
+ */
+/** Ուղղություններ, որոնց վերաբերում է փոփոխականը (մեկ կամ մի քանի). մի քանի ուղղության փոփոխականն ունի մեկ արժեք */
+export const varDirections = (d) => (d?.directions?.length ? d.directions : d?.direction ? [d.direction] : []);
+export const variableAppliesTo = (d, direction) => varDirections(d).includes(direction);
+// Նախասահմանված փոփոխականների բնութագրերը (անվանում, միավոր, նկարագրություն, ուղղություններ) կարող են փոխվել
+// (state.variableDefOverrides[key]). նշանը և տեսակը չեն փոխվում (դրանցից կախված են կանոնները). չօգտագործվողը կարող է
+// հեռացվել (hidden) և վերականգնվել
+const withOverride = (d, ov) => (ov ? { ...d, ...ov, overridden: true } : d);
+export const allVariableDefs = (state) => [
+  ...VARIABLE_DEFS.map((d) => withOverride(d, state?.variableDefOverrides?.[d.key])).filter((d) => !d.hidden),
+  ...(state?.customVariableDefs || []).map((d) => ({ ...d, custom: true, history: [] })),
+];
+export const variableDefOf = (state, key) => (variableDefByKey[key] ? withOverride(variableDefByKey[key], state?.variableDefOverrides?.[key]) : (state?.customVariableDefs || []).find((d) => d.key === key) || null);
+export const hiddenCodeVariables = (state) => VARIABLE_DEFS.filter((d) => state?.variableDefOverrides?.[d.key]?.hidden);
+
+/** Փոփոխականներ, որոնք օգտագործվում են անմիջապես հաշվարկում (ոչ կանոնի պարամետրով) */
+export const ENGINE_USAGE = {
+  dec_threshold: { id: 'Հայտարարագրի վերլուծության շեմ', direction: 'declarations' },
+  manual_max_weight: { id: 'DEC-R7', direction: 'declarations' },
+};
+
+/** Որտեղ է օգտագործվում համակարգային փոփոխականը (կառուցիչի պայմաններ, պարամետրեր, բարդ փոփոխականներ) */
+export function variableUsage(state, key) {
+  const re = new RegExp(`\\bvar\\.${key}\\b`);
+  const out = [];
+  for (const r of state?.customRules || []) if ((r.kind === 'expression' && re.test(r.expression || '')) || Object.values(r.params || {}).some((b) => b?.var === key)) out.push(r.id);
+  for (const [id, c] of Object.entries(state?.ruleConfig || {})) if (re.test(c.expression || '') || Object.values(c.params || {}).some((b) => b?.var === key)) out.push(id);
+  for (const d of state?.derivedVars || []) if (re.test(d.expression || '')) out.push(`doc.${d.key}`);
+  return [...new Set(out)];
+}
+
 /** Վերադարձնում է փոփոխականի արժեքը տվյալ ամսաթվին (null, եթե սահմանված չէ) */
 export function variableValue(variables, key, date) {
   const history = variables[key] ?? variableDefByKey[key]?.history ?? [];
@@ -87,10 +125,6 @@ export function variableValue(variables, key, date) {
  */
 export const DEMO_VALUES = {
   variables: {
-    min_living_budget: {
-      history: [[2023, 75326], [2024, 75529], [2025, 78836], [2026, 85091]].map(([y, v]) => ({ value: v, effectiveFrom: `${y}-01-01` })),
-      why: 'Վերցված է «Նվազագույն սպառողական զամբյուղ» փոփոխականից (բաժին 9)՝ Q-47(բ) վարկածով, որ դրանք նույն մեծությունն են',
-    },
     gift_unusual_mult: { history: [{ value: 5, effectiveFrom: '2020-01-01' }], why: 'Օրինակը վերցված է SRS 6-ի կանոնի տեքստից («եթե բազմապատիկը 5 է»)' },
   },
   ruleParams: {

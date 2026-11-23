@@ -1,7 +1,8 @@
 /**
- * ՊԵԿ (tax, ssn/v1) mock — SRS 11.5.2։
+ * ՊԵԿ (tax, ssn/v1) mock — docs/external_web_services/tax.ssn.v1։
  * Հարցում՝ tax_ssn_request { ssn, start_date, end_date }։ Պատասխան՝ tax_ssn_response
- * { error?, taxPayerInfo[ { taxpayerid, personInfoPeriods.personInfoPeriod[ { date, personInfo{...} } ] } ] }։
+ * { error?, taxPayerInfo[ { taxPayerInfoItem: { taxpayerid, personInfoPeriods.personInfoPeriod[ { personInfoPeriodItem: { date, personInfo{...} } } ] } } ] }։
+ * Զանգվածի տարրերը՝ Guideline-ի ծառի անուններով (taxPayerInfoItem, personInfoPeriodItem)։
  * Միայն աշխատավարձ/հավասարեցված վճարումներ և քաղաքացիաիրավական պայմանագրեր (այլ եկամտատեսակներ
  * ծառայությունում չկան, Q-50)։ Ամսաթվի ձևաչափը նկարագրված չէ. mock-ում՝ «YYYY-MM»։
  * Ամսական տողերը գեներացվում են ստորև նկարագրված աշխատանքային ժամանակահատվածներից։
@@ -78,7 +79,8 @@ export function taxSsn(req) {
   const to = (end_date || '9999-12').slice(0, 7);
   const info = buildTaxPayerInfo(ssn)
     .map((t) => ({ ...t, personInfoPeriods: { personInfoPeriod: t.personInfoPeriods.personInfoPeriod.filter((p) => p.date >= from && p.date <= to) } }))
-    .filter((t) => t.personInfoPeriods.personInfoPeriod.length);
+    .filter((t) => t.personInfoPeriods.personInfoPeriod.length)
+    .map((t) => ({ taxPayerInfoItem: { ...t, personInfoPeriods: { personInfoPeriod: t.personInfoPeriods.personInfoPeriod.map((p) => ({ personInfoPeriodItem: p })) } } }));
   return { tax_ssn_response: { taxPayerInfo: info } };
 }
 export const pekKnownSsns = Object.keys(employment);

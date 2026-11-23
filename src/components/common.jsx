@@ -3,7 +3,7 @@ import {
   Box, Chip, Typography, Paper, Table, TableBody, TableCell, TableHead, TableRow, Accordion, AccordionSummary, AccordionDetails,
   Stack, Tooltip, Alert, Button, TextField, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, Link,
 } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
+import { useTheme, alpha } from '@mui/material/styles';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
@@ -44,6 +44,18 @@ export function StatusChip({ status, size = 'small' }) {
   const color = { fired: theme.palette.status.fired, not_fired: theme.palette.status.notFired, not_evaluated: theme.palette.status.notEvaluated, not_applicable: theme.palette.text.disabled }[status];
   const Icon = STATUS_ICON[status];
   return <Chip size={size} variant="outlined" icon={Icon ? <Icon style={{ color }} /> : undefined} label={STATUS_LABEL[status] || status} sx={{ borderColor: color, color }} />;
+}
+
+/** Կանոնի համարը՝ արդյունքի գույնով և պատկերակով (կարմիր դրոշ՝ աշխատել է, կանաչ նշում՝ չի աշխատել, նարնջագույն՝ չի գնահատվել) */
+export function RuleIdChip({ ruleId, status, size = 'small' }) {
+  const theme = useTheme();
+  const color = { fired: theme.palette.status.fired, not_fired: theme.palette.status.notFired, not_evaluated: theme.palette.status.notEvaluated }[status] || theme.palette.text.disabled;
+  const Icon = STATUS_ICON[status];
+  return (
+    <Tooltip title={STATUS_LABEL[status] || status}>
+      <Chip size={size} variant="outlined" icon={Icon ? <Icon style={{ color }} /> : undefined} label={ruleId} sx={{ borderColor: color, color, fontWeight: 600, minWidth: 96, justifyContent: 'flex-start' }} />
+    </Tooltip>
+  );
 }
 
 export function RiskChip({ risky, label }) {
@@ -119,12 +131,60 @@ export function Snapshots({ snapshots }) {
   );
 }
 
-/** Կանոնների արդյունքների ցանկ (COM-19). աշխատածները՝ առաջինը */
+/**
+ * Երկու աղբյուրի համեմատման աղյուսակ (օր.՝ DEC-R2. ՔԿԱԳ և հայտարարագիր)։
+ * comparison = { columns: [ձախ, աջ], rows: [{ label, left: [{ name, note, excluded? }], right: [...], gap }] }.
+ * gap = true տողը (ձախում ավելի շատ է) ընդգծվում է։ excluded = true անձը ցուցադրվում է, բայց չի հաշվվում (օր.՝ մահացած)։
+ */
+export function ComparisonTable({ comparison }) {
+  if (!comparison?.rows?.length) return null;
+  const [leftTitle, rightTitle] = comparison.columns;
+  const Cell = ({ items, gap }) => (
+    <TableCell sx={{ verticalAlign: 'top', width: '37%' }}>
+      <Typography variant="body2" sx={{ fontWeight: 700, color: gap ? 'error.main' : 'text.primary' }}>{items.filter((it) => !it.excluded).length}</Typography>
+      {items.length === 0
+        ? <Typography variant="body2" color="text.secondary">—</Typography>
+        : items.map((it, i) => (
+          <Typography key={i} variant="body2" sx={{ lineHeight: 1.5, color: it.excluded ? 'text.disabled' : 'text.primary' }}>
+            <Box component="span" sx={it.excluded ? { textDecoration: 'line-through' } : undefined}>{it.name}</Box>
+            {it.note && <Box component="span" sx={{ color: it.excluded ? 'text.disabled' : 'text.secondary' }}>{` · ${it.note}`}</Box>}
+          </Typography>
+        ))}
+    </TableCell>
+  );
+  return (
+    <Box sx={{ overflowX: 'auto', mt: 1 }}>
+      <Table size="small" sx={{ minWidth: 520 }}>
+        <TableHead>
+          <TableRow>
+            <TableCell sx={{ width: '26%' }} />
+            <TableCell sx={{ fontWeight: 700 }}>{leftTitle}</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{rightTitle}</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {comparison.rows.map((r) => (
+            <TableRow key={r.label} sx={r.gap ? { bgcolor: (t) => alpha(t.palette.error.main, 0.06) } : undefined}>
+              <TableCell sx={{ verticalAlign: 'top', color: 'text.secondary' }}>{r.label}</TableCell>
+              <Cell items={r.left} gap={r.gap} />
+              <Cell items={r.right} />
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </Box>
+  );
+}
+
+/**
+ * Կանոնների արդյունքների ցանկ (COM-19). ցուցադրվում են միայն աշխատած (ռիսկային նշում) և չգնահատված կանոնները.
+ * չաշխատած և «կիրառելի չէ» արդյունքները չեն ցուցադրվում
+ */
 export function RuleResults({ results, rules, showWeight, defaultExpandFired = true }) {
-  const order = { fired: 0, not_evaluated: 1, not_fired: 2, not_applicable: 3 };
-  const list = Object.values(results || {}).sort((a, b) => order[a.status] - order[b.status]);
+  const order = { fired: 0, not_evaluated: 1 };
+  const list = Object.values(results || {}).filter((r) => r.status in order).sort((a, b) => order[a.status] - order[b.status] || a.ruleId.localeCompare(b.ruleId, undefined, { numeric: true }));
   const byId = Object.fromEntries(rules.map((r) => [r.id, r]));
-  if (!list.length) return <Typography color="text.secondary">Կիրառելի կանոններ չկան։</Typography>;
+  if (!list.length) return <Typography color="text.secondary">Ռիսկային նշումներ չկան։</Typography>;
   return (
     <Box>
       {list.map((r) => {
@@ -133,17 +193,15 @@ export function RuleResults({ results, rules, showWeight, defaultExpandFired = t
           <Accordion key={r.ruleId} disableGutters defaultExpanded={defaultExpandFired && r.status === 'fired'} sx={{ '&:before': { display: 'none' }, mb: 1 }}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ alignItems: { sm: 'center' }, width: '100%', pr: 1 }}>
-                <StatusChip status={r.status} />
-                <Typography sx={{ fontWeight: 600, flex: 1 }}>
-                  <Box component="span" sx={{ color: 'text.secondary', mr: 1 }}>{r.ruleId}</Box>{rule.title}
-                </Typography>
+                <RuleIdChip ruleId={r.ruleId} status={r.status} />
+                <Typography sx={{ fontWeight: 600, flex: 1 }}>{rule.title}</Typography>
                 {showWeight && r.status === 'fired' && <Chip size="small" color="error" variant="outlined" label={`քաշ ${r.weight}`} />}
               </Stack>
             </AccordionSummary>
             <AccordionDetails>
               <Typography variant="body2" sx={{ mb: 1 }}>{r.explanation}</Typography>
               {rule.srsRef && <Typography variant="caption" color="text.secondary">Աղբյուր՝ {rule.srsRef}</Typography>}
-              <ValuesTable values={r.values} />
+              {r.comparison ? <><ComparisonTable comparison={r.comparison} /><ValuesTable values={r.notes} /></> : <ValuesTable values={r.values} />}
               <Snapshots snapshots={r.snapshots} />
             </AccordionDetails>
           </Accordion>
@@ -204,12 +262,12 @@ export function SimpleTable({ columns, rows, onRowClick, empty = 'Տվյալնե
 }
 
 /** Զտիչներ (COM-22). անձ, ժամանակահատված, ռիսկի մակարդակ, կանոն */
-export function FilterBar({ filters, setFilters, years, rules, extra }) {
+export function FilterBar({ filters, setFilters, years, rules, extra, requireYear = false }) {
   return (
-    <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mb: 2 }}>
+    <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mb: 2, alignItems: { md: 'center' } }}>
       <TextField size="small" label="Որոնում (անուն, ՀԾՀ, ID)" value={filters.q} onChange={(e) => setFilters({ ...filters, q: e.target.value })} sx={{ minWidth: 240 }} />
       <TextField size="small" select label="Տարի" value={filters.year} onChange={(e) => setFilters({ ...filters, year: e.target.value })} sx={{ minWidth: 120 }}>
-        <MenuItem value="">Բոլորը</MenuItem>
+        {!requireYear && <MenuItem value="">Բոլորը</MenuItem>}
         {years.map((y) => <MenuItem key={y} value={y}>{y}</MenuItem>)}
       </TextField>
       <TextField size="small" select label="Ռիսկ" value={filters.risk} onChange={(e) => setFilters({ ...filters, risk: e.target.value })} sx={{ minWidth: 160 }}>

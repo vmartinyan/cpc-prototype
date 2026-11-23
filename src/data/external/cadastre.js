@@ -1,12 +1,13 @@
 /**
- * Կադաստր (get_realty_owned/v1) mock — SRS 11.5.3։
- * Հարցում՝ cad_get_realty_owned_request { by_ssn: { ssn, date_from, date_to } } կամ { by_pass: {...} }, ամսաթվերը՝ dd/mm/yyyy։
- * Պատասխան՝ owned_realties[]։ Արժեքի, գործարքի և գործարքի կողմի դաշտեր ծառայությունում չկան,
+ * Կադաստր (get_realty_owned/v1) mock — docs/external_web_services/cadastre.get_realty_owned.v1։
+ * Հարցում՝ cad_get_realty_owned_request { by_ssn: { ssn, date_from, date_to } } կամ { by_pass: { passport, date_from, date_to } }, ամսաթվերը՝ dd/mm/yyyy։
+ * Պատասխան՝ cad_get_realty_owned_response { owned_realties[ { owned_realty_object: {...} } ] }։
+ * cad_registration_date-ի ձևաչափը նկարագրված չէ. mock-ում՝ dd/mm/yyyy։ Արժեքի, գործարքի և գործարքի կողմի դաշտեր ծառայությունում չկան,
  * ուստի mock-ում նույնպես չկան (կադաստրային արժեք, գործարքի գին և այլն)։
  */
 
 function realty(o) {
-  return {
+  return { owned_realty_object: {
     UNIT_ADDRESS: o.unit,
     owned_realty_address: {
       house: o.house || '', region: o.region || 'ԵՐԵՎԱՆ', building: o.building || '', community: o.community || '',
@@ -24,7 +25,7 @@ function realty(o) {
     cad_bld_purpose_of_use_name: o.bld_type || 'Բնակարան',
     cad_registration_date: o.regdate,
     cad_certificate_number: o.cert,
-  };
+  } };
 }
 
 const byOwner = {
@@ -53,6 +54,6 @@ const byOwner = {
 export function getRealtyOwned(req) {
   const q = req?.cad_get_realty_owned_request || {};
   const ssn = q.by_ssn?.ssn;
-  return { owned_realties: (ssn && byOwner[ssn]) || [] };
+  return { cad_get_realty_owned_response: { owned_realties: (ssn && byOwner[ssn]) || [] } };
 }
 export const cadastreKnownSsns = Object.keys(byOwner);

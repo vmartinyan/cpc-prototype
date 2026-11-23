@@ -13,6 +13,14 @@
  * Օրինակ (COM-04). doc.cash_end + 12 * ext.pek_income_year < var.cash_threshold
  */
 
+/** Կանոնը կիրառելի չէ տվյալ միավորի նկատմամբ (օր.՝ ընտանիքի անդամի առանձին հայտարարագիր) */
+export class NotApplicable extends Error {
+  constructor(reason) {
+    super(reason);
+    this.reason = reason;
+  }
+}
+
 export class NotEvaluated extends Error {
   constructor(reason, extra = {}) {
     super(reason);
@@ -113,10 +121,11 @@ export function parse(src) {
     }
     throw new SyntaxError(`Անսպասելի «${t.v}»`);
   }
-  // ագրեգատի արգումենտ. աղյուսակ.դաշտ կամ աղյուսակ (count-ի համար) կամ արտահայտություն (abs)
+  // ագրեգատի արգումենտ. աղյուսակ.դաշտ կամ աղյուսակ (count-ի համար) կամ արտահայտություն (abs)։
+  // Աղյուսակը՝ EPD անունով (de_...) կամ կարճ տերմինով (cash, bank_accounts, ...՝ metrics.TABLE_ALIASES)
   function argE() {
     const t = peek();
-    if (t && t.t === 'id' && /^de_/.test(t.v)) { p++; const [table, ...f] = t.v.split('.'); return { k: 'col', table, field: f.join('.') || null }; }
+    if (t && t.t === 'id' && (/^de_/.test(t.v) || /^[a-z][a-z0-9_]*(\.[a-z0-9_]+)?$/.test(t.v)) && !/^(doc|ext|var|rule)\./.test(t.v)) { p++; const [table, ...f] = t.v.split('.'); return { k: 'col', table, field: f.join('.') || null }; }
     return orE();
   }
 

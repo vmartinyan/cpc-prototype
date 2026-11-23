@@ -1,43 +1,53 @@
 /**
- * ԲՊՌ (police-passport) mock — SRS 11.5.1։
- * Ծառայություններ. search_by_psn/v1 (pr_search_by_psn_request.psn) և
- * search_by_doc_num/v1 (pr_search_by_docnum_request.Document_Number)։ Պատասխանը՝ pr_search_response։
- * Դաշտերի անունները և բնադրումը՝ ըստ 11.5.1-ի։ SSN_Indicator-ը 11.5.1 աղյուսակում տրված է
- * փաստաթղթի դաշտերից հետո, իսկ 11.2-ում՝ AVVPerson-ի կազմում. mock-ում այն AVVPerson-ում է։
- * Photo_ID-ն թողնված է դատարկ (11.4. լուսանկարը չպետք է պահվի)։
+ * ԲՊՌ (police-passport) mock — docs/external_web_services/police-passport.search_by_psn.v1 և search_by_doc_num.v1։
+ * Հարցում՝ pr_search_by_psn_request { psn } կամ pr_search_by_docnum_request { Document_Number }։
+ * Պատասխան՝ pr_search_response { AVVPerson { PNum, IsDead, AVVAddresses, AVVDocuments, SSN_Indicator } }.
+ * AVVAddresses-ը, AVVDocuments-ը և SSN_Indicator-ը AVVPerson-ի կազմում են (ըստ Guideline-ի)։
+ * Զանգվածի տարրերը՝ { AVVAddress_Item: {...} } և { Document_object: {...} } (Guideline-ի ծառի անուններով)։
+ * Photo_ID-ն Document_object-ի մակարդակում է և թողնված է դատարկ (լուսանկարը չպետք է պահվի)։
+ * Չգտնվելու դեպքում պատասխանը փաստաթղթում նկարագրված չէ. mock-ում՝ { pr_search_response: null }։
  */
 
 const ARM = { CountryCode: '051', CountryName: 'ՀԱՅԱՍՏԱՆ', CountryShortName: 'ARM' };
 
 function person({ psn, first, last, patronymic, birth, genus, docType = 'ID card', docNum, isDead = 'false', ssnIndicator = 'true', region = 'ԵՐԵՎԱՆ', community = 'ԿԵՆՏՐՈՆ', street = 'ՏԻԳՐԱՆ ՄԵԾԻ', building = '10', apartment = '5', en = ['', '', ''] }) {
   return {
-    AVVPerson: { PNum: psn, IsDead: isDead, SSN_Indicator: ssnIndicator },
-    AVVAddresses: {
-      AVVAddress: [
-        {
-          Registration_Data: { Registration_Date: '12/05/2015', Registration_Type: 'CURRENT', Registration_Status: 'P', Registration_Department: '011' },
-          ResidenceDocument: { Residence_Document: '', Residence_Document_Number: '' },
-          Registration_Address: { type: 'Current', Region: region, Street: street, Building: building, Apartment: apartment, Community: community, Residence: region === 'ԵՐԵՎԱՆ' ? 'ԵՐԵՎԱՆ' : community, LocationCode: '0010', Postal_Index: '0010', Building_Type: 'ՇԵՆՔ' },
-        },
-      ],
-    },
-    AVVDocuments: {
-      Document: [
-        {
-          Person: {
-            Genus: genus, Last_Name: last, First_Name: first, Patronymic_Name: patronymic, Birth_Date: birth,
-            Citizenship: ARM, Nationality: { NationalityCode: '01', NationalityName: 'ՀԱՅ' },
-            Birth_Region: region, Birth_Address: region, Birth_Country: ARM,
-            English_Last_Name: en[1], English_First_Name: en[0], English_Patronymic_Name: en[2], Photo_ID: '',
+    AVVPerson: {
+      PNum: psn,
+      IsDead: isDead,
+      AVVAddresses: {
+        AVVAddress: [
+          {
+            AVVAddress_Item: {
+              Registration_Data: { Registration_Date: '12/05/2015', Registration_Type: 'CURRENT', Registration_Status: 'P', Registration_Department: '011' },
+              ResidenceDocument: { Residence_Document: '', Residence_Document_Number: '' },
+              Registration_Address: { type: 'Current', Region: region, Street: street, Building: building, Apartment: apartment, Community: community, Residence: region === 'ԵՐԵՎԱՆ' ? 'ԵՐԵՎԱՆ' : community, LocationCode: '0010', Postal_Index: '0010', Building_Type: 'ՇԵՆՔ' },
+            },
           },
-          PassportData: { Passport_Type: 'C', Passport_Issuance_Date: '15/03/2019', Passport_Validity_Date: '15/03/2029', Related_Document_Date: '', Related_Document_Number: '', Related_Document_Department: '' },
-          BasicDocument: { Basic_Document_Code: '', Basic_Document_Name: '', Basic_Document_Number: '', Basic_Document_Country: ARM },
-          Document_Type: docType,
-          Document_Number: docNum,
-          Document_Status: 'Primary Valid',
-          Document_Department: '011',
-        },
-      ],
+        ],
+      },
+      AVVDocuments: {
+        Document: [
+          {
+            Document_object: {
+              Person: {
+                Genus: genus, Last_Name: last, Birth_Date: birth, First_Name: first,
+                Citizenship: ARM, Nationality: { NationalityCode: '01', NationalityName: 'ՀԱՅ' },
+                Birth_Region: region, Birth_Address: region, Birth_Country: ARM,
+                Patronymic_Name: patronymic, English_Last_Name: en[1], English_First_Name: en[0], English_Patronymic_Name: en[2],
+              },
+              Photo_ID: '',
+              PassportData: { Passport_Type: 'C', Related_Document_Date: '', Passport_Issuance_Date: '15/03/2019', Passport_Validity_Date: '15/03/2029', Related_Document_Number: '', Related_Document_Department: '' },
+              BasicDocument: { Basic_Document_Code: '', Basic_Document_Name: '', Basic_Document_Number: '', Basic_Document_Country: ARM },
+              Document_Type: docType,
+              Document_Number: docNum,
+              Document_Status: 'Primary Valid',
+              Document_Department: '011',
+            },
+          },
+        ],
+      },
+      SSN_Indicator: ssnIndicator,
     },
   };
 }
@@ -77,9 +87,9 @@ export const bprRecords = [
 
 export function searchByPsn(req) {
   const psn = req?.pr_search_by_psn_request?.psn;
-  return bprRecords.find((r) => r.AVVPerson.PNum === psn) || null;
+  return { pr_search_response: bprRecords.find((r) => r.AVVPerson.PNum === psn) || null };
 }
 export function searchByDocNum(req) {
   const num = req?.pr_search_by_docnum_request?.Document_Number;
-  return bprRecords.find((r) => r.AVVDocuments.Document.some((d) => d.Document_Number === num)) || null;
+  return { pr_search_response: bprRecords.find((r) => r.AVVPerson.AVVDocuments.Document.some((d) => d.Document_object.Document_Number === num)) || null };
 }

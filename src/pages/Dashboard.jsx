@@ -53,7 +53,7 @@ function BarChart({ title, data, unitLabel = '' }) {
 export default function Dashboard() {
   const { results, state } = useStore();
   const stats = useMemo(() => ruleStats(results), [results]);
-  const decl = results.declarations.filter((u) => !u.draft);
+  const decl = results.declarations;
   const declFlagged = decl.filter((u) => u.scopes.some((s) => s.score > 0));
   const gifts = results.gifts;
   const persons = results.parties.persons;
@@ -73,7 +73,7 @@ export default function Dashboard() {
     { label: '0 միավոր', test: (s) => s === 0 },
     { label: `1–${Math.floor(thr / 2) - 1}`, test: (s) => s > 0 && s < thr / 2 },
     { label: `${Math.floor(thr / 2)}–${thr - 1}`, test: (s) => s >= thr / 2 && s < thr },
-    { label: `≥ ${thr} (վերլուծության ենթակա)`, test: (s) => s >= thr },
+    { label: `≥ ${thr} (ռիսկային)`, test: (s) => s >= thr },
   ].map((b) => ({ label: b.label, value: decl.filter((u) => b.test(u.score)).length }));
   const years = [...new Set([...decl.map((u) => u.year), ...gifts.map((g) => g.year), ...parties.map((p) => p.year), ...integ.map((q) => q.year)])].sort();
   const byYear = years.map((y) => ({
@@ -92,7 +92,7 @@ export default function Dashboard() {
         </Alert>
       )}
       <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid size={{ xs: 6, md: 3 }}><StatTile label="Հայտարարագրեր՝ վերլուծության ենթակա" value={`${decl.filter((u) => u.risky).length} / ${decl.length}`} sub={`Առնվազն մեկ նշումով՝ ${declFlagged.length}. շեմ՝ ${thr}`} onClick={() => navigate('/declarations')} /></Grid>
+        <Grid size={{ xs: 6, md: 3 }}><StatTile label="Հայտարարագրեր՝ ռիսկային" value={`${decl.filter((u) => u.risky).length} / ${decl.length}`} sub={`Առնվազն մեկ նշումով՝ ${declFlagged.length}. շեմ՝ ${thr}`} onClick={() => navigate('/declarations')} /></Grid>
         <Grid size={{ xs: 6, md: 3 }}><StatTile label="Կուսակցություններ՝ ռիսկային" value={`${parties.filter((p) => p.risky).length} / ${parties.length}`} sub={`Ռիսկային ֆիզ. անձինք՝ ${persons.filter((p) => p.risky).length} / ${persons.length}`} onClick={() => navigate('/parties')} /></Grid>
         <Grid size={{ xs: 6, md: 3 }}><StatTile label="Նվերների ձևաթղթեր՝ ռիսկային" value={`${gifts.filter((g) => g.risky).length} / ${gifts.length}`} onClick={() => navigate('/gifts')} /></Grid>
         <Grid size={{ xs: 6, md: 3 }}><StatTile label="Հարցաթերթիկներ՝ ռիսկային" value={`${integ.filter((q) => q.risky).length} / ${integ.length}`} onClick={() => navigate('/integrity')} /></Grid>

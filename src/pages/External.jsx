@@ -9,7 +9,7 @@ const USES = {
   pek: 'Կառուցիչ՝ ext.pek_income_year, ext.pek_income_prev_year (SRS-ի կատալոգի կանոններ 3, 4՝ չիրականացված)',
   cadastre: 'Կառուցիչ՝ ext.cadastre_owned_count',
   police: 'Կառուցիչ՝ ext.vehicles_count',
-  civil: 'Չի օգտագործվում (բարեվարքության կանոն 1՝ չիրականացված, Q-29, Q-49)',
+  civil: 'DEC-R2 (ընտանիքի անդամներ, մերձավոր ազգականներ, խնամիներ, մահվան ակտեր), կառուցիչ՝ ext.civil_*',
   business: 'Չի օգտագործվում (անձով որոնում չկա, Q-53)',
 };
 
@@ -47,7 +47,7 @@ export default function ExternalPage() {
                 <Switch checked={!state.outages[k]} disabled={!editable} onChange={(e) => update((st) => ({ outages: { ...st.outages, [k]: !e.target.checked } }))} />
               </Stack>
               <Chip size="small" color={state.outages[k] ? 'warning' : 'success'} variant="outlined" label={state.outages[k] ? 'Անհասանելի (սիմուլյացիա)' : 'Հասանելի'} sx={{ mb: 1 }} />
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>SRS {s.srs}</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>SRS {s.srs} · docs/external_web_services/{s.docs}</Typography>
               {Object.entries(s.endpoints).map(([ek, ep]) => <Typography key={ek} variant="caption" sx={{ display: 'block', fontFamily: 'monospace', wordBreak: 'break-all' }}>{ep.url}</Typography>)}
               <Typography variant="body2" sx={{ mt: 1 }}>{USES[k]}</Typography>
             </Paper>
@@ -80,7 +80,7 @@ export default function ExternalPage() {
           { key: 's', label: 'Ծառայություն', render: (l) => `${SERVICES[l.service].short} · ${l.endpoint}` },
           { key: 'm', label: 'Համատեքստ', render: (l) => (l.meta?.sandbox ? 'sandbox' : `${l.meta?.direction || ''} ${l.meta?.unit || ''}`) },
           { key: 'r', label: 'Հարցում', render: (l) => <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>{JSON.stringify(l.request).slice(0, 90)}</Typography> },
-          { key: 'ok', label: 'Արդյունք', render: (l) => <Chip size="small" variant="outlined" color={l.ok ? 'success' : 'warning'} label={l.ok ? (l.response ? 'OK' : 'Չի գտնվել') : 'Անհասանելի'} /> },
+          { key: 'ok', label: 'Արդյունք', render: (l) => <Chip size="small" variant="outlined" color={l.ok ? 'success' : 'warning'} label={l.ok ? (l.found ? 'OK' : 'Չի գտնվել') : 'Անհասանելի'} /> },
         ]} />
       </Section>
       <Dialog open={!!open} onClose={() => setOpen(null)} maxWidth="md" fullWidth>

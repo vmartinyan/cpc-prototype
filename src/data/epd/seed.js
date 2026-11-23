@@ -33,6 +33,8 @@ const PEOPLE = {
   'PR-117': { firstname: 'Էդգար', lastname: 'Սիմոնյան', middlename: 'Գրիգորի', ssn: '2808790863', dateofbirth: '1979-08-28', gender: 1 },
   'PR-118': { firstname: 'Լուսինե', lastname: 'Կարապետյան', middlename: 'Նորայրի', ssn: '1610930254', dateofbirth: '1993-10-16', gender: 2 },
   'PR-119': { firstname: 'Անահիտ', lastname: 'Սիմոնյան', middlename: 'Հակոբի', ssn: '0505810577', dateofbirth: '1981-05-05', gender: 2 },
+  'PR-120': { firstname: 'Արսեն', lastname: 'Դանիելյան', middlename: 'Ռաֆայելի', ssn: '1904860312', dateofbirth: '1986-04-19', gender: 1, positiontype: 9, institution: 40, positionatwork: 'Վարչության պետի տեղակալ' },
+  'PR-121': { firstname: 'Սոնա', lastname: 'Դանիելյան', middlename: 'Կարոյի', ssn: '0702880425', dateofbirth: '1988-02-07', gender: 2, positiontype: 9, institution: 12, positionatwork: 'Վարչության պետ' },
 };
 
 const profileFields = (p) => ({
@@ -131,7 +133,7 @@ const SPECS = [
   // Տիգրան Մկրտչյան (PR-105). 2025-ին գնել է բնակարան 45 մլն՝ 30 մլն հիփոթեքային վարկով (եկամտի տեսակ 13)
   {
     code: 'D-105-2024', person: 'PR-105', year: 2024, status: 'published', submittedon: '2025-03-28', position: 'Կոմիտեի նախագահ', institution: 43, positiontype: 2, assumptiondate: '2022-02-01',
-    family: [{ member: 'PR-106', type: FM.spouse }], relatives: [{ firstname: 'Սամվել', lastname: 'Մկրտչյան', middlename: 'Տիգրանի', dateofbirth: '1952-08-14', relativetype: 1 }],
+    family: [{ member: 'PR-106', type: FM.spouse }], relatives: [{ firstname: 'Սամվել', lastname: 'Մկրտչյան', middlename: 'Տիգրանի', dateofbirth: '1952-08-14', relativetype: 1 }, { firstname: 'Ռուզաննա', lastname: 'Մկրտչյան', middlename: 'Գևորգի', dateofbirth: '1955-02-02', relativetype: 1 }],
     positions: [{ institution: 43, position: 'Կոմիտեի նախագահ', assumptiondate: '2022-02-01' }],
     cash: [{ start: 2500000, end: 3000000, origin: 4 }],
     bank: [{ bank: 'Արդշինբանկ', start: 1500000, end: 2000000, origin: 4 }],
@@ -139,7 +141,7 @@ const SPECS = [
   },
   {
     code: 'D-105-2025', person: 'PR-105', year: 2025, status: 'published', submittedon: '2026-03-30', position: 'Կոմիտեի նախագահ', institution: 43, positiontype: 2, assumptiondate: '2022-02-01',
-    family: [{ member: 'PR-106', type: FM.spouse }], relatives: [{ firstname: 'Սամվել', lastname: 'Մկրտչյան', middlename: 'Տիգրանի', dateofbirth: '1952-08-14', relativetype: 1 }],
+    family: [{ member: 'PR-106', type: FM.spouse }], relatives: [{ firstname: 'Սամվել', lastname: 'Մկրտչյան', middlename: 'Տիգրանի', dateofbirth: '1952-08-14', relativetype: 1 }, { firstname: 'Ռուզաննա', lastname: 'Մկրտչյան', middlename: 'Գևորգի', dateofbirth: '1955-02-02', relativetype: 1 }],
     positions: [{ institution: 43, position: 'Կոմիտեի նախագահ', assumptiondate: '2022-02-01' }],
     cash: [{ start: 3000000, end: 500000, origin: 4 }],
     bank: [{ bank: 'Արդշինբանկ', start: 2000000, end: 300000, origin: 4 }],
@@ -180,7 +182,9 @@ const SPECS = [
   // Դավիթ Գրիգորյան (PR-108). տեխնիկական վրիպում (25 000 000՝ 2 500 000-ի փոխարեն), DEC-10
   { code: 'D-108-2024', person: 'PR-108', year: 2024, status: 'published', submittedon: '2025-03-26', position: 'Վարչության պետ', institution: 12, positiontype: 9, assumptiondate: '2019-01-15',
     positions: [{ institution: 12, position: 'Վարչության պետ', assumptiondate: '2019-01-15' }],
-    cash: [{ start: 1500000, end: 2000000, origin: 4 }], incomes: [{ type: 1, payer: 'ՀՀ առողջապահության նախարարություն', tin: '02500055', amount: 8100000, filling: 2, status: 1 }] },
+    // DEC-R5. տարվա ընթացքում վերցրել է 1.2 մլն սպառողական վարկ, թեև տարեսկզբին ուներ 1.5 մլն կանխիկ
+    cash: [{ start: 1500000, end: 2000000, origin: 4 }], incomes: [{ type: 1, payer: 'ՀՀ առողջապահության նախարարություն', tin: '02500055', amount: 8100000, filling: 2, status: 1 }, { type: 13, payer: 'Ինեկոբանկ ՓԲԸ', amount: 1200000 }],
+    remaining: [{ type: 1, lender: 'Ինեկոբանկ ՓԲԸ', balance: 950000, mortgage: false, purpose: 'Սպառողական վարկ' }] },
   { code: 'D-108-2025', person: 'PR-108', year: 2025, status: 'published', submittedon: '2026-03-24', position: 'Վարչության պետ', institution: 12, positiontype: 9, assumptiondate: '2019-01-15',
     positions: [{ institution: 12, position: 'Վարչության պետ', assumptiondate: '2019-01-15' }],
     cash: [{ start: 2000000, end: 25000000, origin: 4 }], incomes: [{ type: 1, payer: 'ՀՀ առողջապահության նախարարություն', tin: '02500055', amount: 8400000, filling: 2, status: 1 }] },
@@ -205,12 +209,15 @@ const SPECS = [
   // Անի Խաչատրյան (PR-110). նվերների ստացող, 5 մլն-ից ավել պայմանագրեր
   { code: 'D-110-2024', person: 'PR-110', year: 2024, status: 'published', submittedon: '2025-03-14', position: 'Վարչության պետ', institution: 32, positiontype: 9, assumptiondate: '2020-10-01',
     positions: [{ institution: 32, position: 'Վարչության պետ', assumptiondate: '2020-10-01' }], relatives: REL_ANI,
-    cash: [{ start: 700000, end: 900000, origin: 4 }], bank: [{ bank: 'Ամերիաբանկ', start: 500000, end: 800000, origin: 4 }],
-    incomes: [{ type: 1, payer: 'ԿԳՄՍ նախարարություն', tin: '02500077', amount: 6200000, filling: 2, status: 1 }],
+    // DEC-R6-ի (գ) օրինակ. 2024-ին վաճառել է բնակարան 8 մլն-ով, գումարը պահել է բանկային հաշվին
+    cash: [{ start: 700000, end: 900000, origin: 4 }], bank: [{ bank: 'Ամերիաբանկ', start: 500000, end: 8800000, origin: 4 }],
+    incomes: [{ type: 1, payer: 'ԿԳՄՍ նախարարություն', tin: '02500077', amount: 6200000, filling: 2, status: 1 }, { type: 8, payer: 'Արամ Պետրոսյան', amount: 8000000 }],
+    realestate: [{ tab: 3, type: 7, area: 48, code: '01-005-0311-0021', dealdate: '2024-09-12', deal: 8000000, method: 2, counterpart: 'Արամ Պետրոսյան' }],
     contracts: [{ counterpart: '«Բիլդ Գրուպ» ՍՊԸ', subject: 'Բնակարանի վերանորոգման աշխատանքներ', type: 'Կապալ', cost: 12000000, sign: '2024-05-14', due: '2024-11-30' }] },
   { code: 'D-110-2025', person: 'PR-110', year: 2025, status: 'published', submittedon: '2026-03-13', position: 'Վարչության պետ', institution: 32, positiontype: 9, assumptiondate: '2020-10-01',
     positions: [{ institution: 32, position: 'Վարչության պետ', assumptiondate: '2020-10-01' }], relatives: REL_ANI,
-    cash: [{ start: 900000, end: 1000000, origin: 4 }], bank: [{ bank: 'Ամերիաբանկ', start: 800000, end: 1100000, origin: 4 }],
+    // DEC-R6. տարեվերջին 7 մլն կանխիկ (> 5 մլն և ≥ 3 × անկանխիկ), բայց հիմնավորվում է նախորդ տարիների խնայողությամբ (2024-ի վաճառք). չի աշխատում
+    cash: [{ start: 900000, end: 7000000, origin: 8 }], bank: [{ bank: 'Ամերիաբանկ', start: 8800000, end: 1100000, origin: 4 }],
     incomes: [{ type: 1, payer: 'ԿԳՄՍ նախարարություն', tin: '02500077', amount: 6600000, filling: 2, status: 1 }, { type: 7, payer: 'Կրթական զարգացման հիմնադրամ', amount: 600000 }],
     contracts: [{ counterpart: '«ԱրմՏեխ» ՓԲԸ', subject: 'Համակարգչային տեխնիկայի ձեռքբերում', type: 'Առուվաճառք', cost: 6500000, sign: '2025-02-03', due: '2025-03-01' }] },
 
@@ -219,6 +226,18 @@ const SPECS = [
     positions: [{ institution: 67, position: 'Համայնքի ղեկավար', assumptiondate: '2021-11-01' }],
     cash: [{ start: 1200000, end: 1300000, origin: 4 }], incomes: [{ type: 1, payer: 'Արտաշատի համայնքապետարան', amount: 5400000, filling: 2, status: 1 }] },
   { code: 'D-111-2025', person: 'PR-111', year: 2025, status: 'draft', submittedon: null, position: 'Համայնքի ղեկավար', institution: 67, positiontype: 4, assumptiondate: '2021-11-01', overdue: true },
+
+  // Արսեն և Սոնա Դանիելյաններ (PR-120, PR-121). ամուսիններ, երկուսն էլ պաշտոնատար անձ. յուրաքանչյուրը ներկայացնում է միայն
+  // իր պաշտոնյայի հայտարարագիրը (ինչպես EPD-ում). ընտանիքի կազմով հաշվարկում ներառվում է ամուսնու հայտարարագիրը.
+  // առանց դրա Արսենի ընտանիքի կազմով DEC-R1-ը սխալմամբ կաշխատեր (1.5 մլն ծախս 2 անձի համար)։
+  // Արսենի հայտարարագրում նշված է նաև Սոնայի բանկային հաշիվը (կրկնվող տող). այն չի հաշվվում, քանի որ վերցվում է Սոնայի հայտարարագրից
+  { code: 'D-120-2025', person: 'PR-120', year: 2025, status: 'published', submittedon: '2026-03-20', position: 'Վարչության պետի տեղակալ', institution: 40, positiontype: 9, assumptiondate: '2023-02-01',
+    positions: [{ institution: 40, position: 'Վարչության պետի տեղակալ', assumptiondate: '2023-02-01' }], family: [{ member: 'PR-121', type: FM.spouse }],
+    cash: [{ start: 300000, end: 1200000, origin: 4 }], incomes: [{ type: 1, payer: 'ՀՀ ֆինանսների նախարարություն', tin: '02500044', amount: 2400000, filling: 2, status: 1 }],
+    memberRows: { member: 'PR-121', type: FM.spouse, bank: [{ bank: 'Ակբա բանկ', start: 500000, end: 600000, origin: 4 }] } },
+  { code: 'D-121-2025', person: 'PR-121', year: 2025, status: 'published', submittedon: '2026-03-18', position: 'Վարչության պետ', institution: 12, positiontype: 9, assumptiondate: '2021-09-01',
+    positions: [{ institution: 12, position: 'Վարչության պետ', assumptiondate: '2021-09-01' }], family: [{ member: 'PR-120', type: FM.spouse }],
+    bank: [{ bank: 'Ակբա բանկ', start: 500000, end: 600000, origin: 4 }], incomes: [{ type: 1, payer: 'ՀՀ առողջապահության նախարարություն', tin: '02500055', amount: 4800000, filling: 2, status: 1 }] },
 ];
 
 function addSections(root, owner, spec, ctx, opts = {}) {
@@ -244,6 +263,7 @@ function addSections(root, owner, spec, ctx, opts = {}) {
       ...base(r, null, ownerClone, fmType), incometype: r.type, incomepayerfullname: r.payer, tin: r.tin ?? null, ...money('amount', r.amount, r.cur, rd(r)) });
     for (const r of o.remaining || []) db.detail('de_revenuesremainingprincipals', section('de_revenues', r.type === 1 ? { hasprincipalbalance: 1 } : { hasprincipalbalanceforloan: 1 }), {
       ...base(r, null, ownerClone, fmType), type: r.type, lenderfullname: r.lender, hasmortgage: yn(r.mortgage), subjectofmortgage: r.subject ?? null, mortgageaddress: r.address ?? null,
+      creditpurpose: r.type === 1 ? r.purpose ?? null : null, loanpurpose: r.type === 2 ? r.purpose ?? null : null,
       ...(r.type === 1 ? money('creditprincipalbalance', r.balance, r.cur, rd(r)) : money('loanbalance', r.balance, r.cur, rd(r))) });
     for (const r of o.realestate || []) db.detail('de_realestatedetails', section('de_realestate', { [{ 1: 'hasrealestateatbeginningofyear', 2: 'hasacquiredrealestate', 3: 'hasalienatedrealestate' }[r.tab]]: 1 }), {
       ...base(r, r.tab, ownerClone, fmType), realestatetype: r.type, area: r.area, code: r.code, dealdate: r.dealdate ?? null, dealmethod: r.method ?? null,
@@ -258,6 +278,7 @@ function addSections(root, owner, spec, ctx, opts = {}) {
   };
   add(spec, owner.clone, null);
   if (spec.minorRows) add(spec.minorRows, owner.members[spec.minorRows.member], FM.minor);
+  if (spec.memberRows) add(spec.memberRows, owner.members[spec.memberRows.member], spec.memberRows.type);
   if (spec.parties) {
     const s = section('de_membershipinparties', { hasmembership: yn(spec.parties.length > 0) });
     for (const p of spec.parties) db.detail('de_membershipinpartiesdetails', s, { partyname: p.name, statusinparty: p.status, profile: owner.clone.instanceid, datafillingoption: 1, status: null });

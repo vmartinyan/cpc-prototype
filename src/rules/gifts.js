@@ -16,6 +16,7 @@ export const giftRules = [
     criterion: 'Նվերի արժեքը գերազանցում է 1 մլն ՀՀ դրամը (կամ համարժեք արտարժույթը)',
     srsRef: 'Բաժին 6, կանոն «Խոշոր արժեքի նվեր» (ազդակ i)',
     requirements: ['GIF-01', 'GIF-02', 'GIF-03'],
+    builderExpression: 'doc.amount_amd > var.gift_large_threshold',
     params: [{ key: 'threshold', label: 'Շեմ', unit: 'AMD', default: { var: 'gift_large_threshold' } }],
     evaluate(g, api) {
       const t = api.param('threshold');
@@ -31,6 +32,7 @@ export const giftRules = [
     criterion: 'Նույն պաշտոնատար անձի նվերների քանակը ընթացիկ տարում՝ նախորդ տարվա համեմատ (օր.՝ 30 նվեր 10-ի փոխարեն)',
     srsRef: 'Բաժին 6, կանոն «Նվերների քանակի աճ» (ազդակ ii)',
     requirements: ['GIF-01', 'GIF-03', 'COM-04'],
+    builderExpression: 'doc.count_prev_year > 0 and doc.count_year / doc.count_prev_year >= var.gift_count_growth',
     params: [{ key: 'ratio', label: 'Աճի շեմ (ընթացիկ/նախորդ)', unit: 'անգամ', default: { var: 'gift_count_growth' } }],
     caveats: ['Շեմը մեկնաբանված է որպես հարաբերակցություն (30/10 = 3). եթե նախորդ տարում նվեր չկա, համեմատություն չի կատարվում'],
     evaluate(g, api) {
@@ -50,6 +52,7 @@ export const giftRules = [
     criterion: 'Նույն պաշտոնատար անձի նվերների ընդհանուր արժեքը ընթացիկ տարում՝ նախորդ տարվա համեմատ (օր.՝ 3 մլն՝ 500 հազարի փոխարեն)',
     srsRef: 'Բաժին 6, կանոն «Նվերների արժեքի աճ» (ազդակ ii)',
     requirements: ['GIF-01', 'GIF-03', 'COM-04'],
+    builderExpression: 'doc.value_prev_year > 0 and doc.value_year / doc.value_prev_year >= var.gift_value_growth',
     params: [{ key: 'ratio', label: 'Աճի շեմ (ընթացիկ/նախորդ)', unit: 'անգամ', default: { var: 'gift_value_growth' } }],
     caveats: ['Շեմը մեկնաբանված է որպես հարաբերակցություն (3 մլն/500 հազար = 6)'],
     evaluate(g, api) {
