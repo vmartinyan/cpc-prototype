@@ -96,6 +96,98 @@ export function civilKinshipOfScope(scope, ext) {
   return civilKinship(scope.decls[0], ext);
 }
 
+/**
+ * DEC-R5. տարվա ընթացքում ստացված վարկեր (եկամտի տեսակ 13)՝ բաժանված հիփոթեքայինների և մնացածի։ Հիփոթեքային է այն տողը, որի
+ * տեքստում (նկարագրություն, վճարող, կապի բնույթ) կա բանալի բառերից որևէ մեկը (scope.mortgageKeywords, համակարգային
+ * փոփոխական mortgage_keywords). համեմատությունը՝ բառի մաս, առանց մեծատառ/փոքրատառ տարբերության
+ */
+export function receivedLoans(scope) {
+  const kws = (scope.mortgageKeywords || []).map((k) => String(k).toLocaleLowerCase('hy').trim()).filter(Boolean);
+  const amdOf = (r) => (r.amount_amount == null || r.amount_ratetodefault == null ? 0 : r.amount_amount * r.amount_ratetodefault);
+  const rows = (scope.exp ? scope.exp.rows('de_revenuesincomes') : []).filter((r) => r.incometype === 13).map((row) => {
+    const text = [row.description, row.incomepayerfullname, row.natureofrelationshipwithpayer].filter(Boolean).join(' ').toLocaleLowerCase('hy');
+    const keyword = kws.find((k) => text.includes(k)) || null;
+    return { row, amd: amdOf(row), mortgage: !!keyword, keyword };
+  });
+  const mortgage = rows.filter((x) => x.mortgage);
+  const sum = (list) => list.reduce((t, x) => t + x.amd, 0);
+  return { rows, mortgage, allSum: sum(rows), otherSum: sum(rows.filter((x) => !x.mortgage)) };
+}
+
+/**
+ * Կանխիկի չափորոշիչ (բաժին 4, չափորոշիչ 6; ԿԿՀ-ի ճշտում 25.11.2026).
+ *   • կանխիկը և անկանխիկ միջոցները՝ հայտարարատուի և ընտանիքի անդամների գումարով (ընտանիքի ընդհանուր կազմով հաշվարկ)
+ *   • պայմանները ստուգվում են հաջորդաբար. (ա) չբավարարվելու դեպքում (բ)-ն չի ստուգվում, (բ)-ի դեպքում՝ (գ)-ն
+ *   • (գ) «գերազանցում է նախորդ բոլոր տարիների խնայողությունը» վերանայվում է. այն ունի միայն պահուստային (լռելյայն անջատված) DEC-R6-2-ը
+ */
+function cashRule({ id, withSavings, defaultEnabled }) {
+  const P = (k) => `doc.family_${k}`;
+  const moment = (m) => `(${P(`cash_${m}`)} > var.cash_threshold and ${P(`cash_${m}`)} >= var.cash_ratio * ${P(`noncash_${m}`)}${withSavings ? ` and ${P(`cash_${m}`)} > ${P('prev_savings')}` : ''})`;
+  return {
+    id,
+    direction: 'declarations',
+    title: withSavings ? 'Խոշոր կանխիկ՝ չհիմնավորված ծագմամբ, ներառյալ նախորդ տարիների խնայողությունը (պահուստային)' : 'Խոշոր կանխիկ՝ չհիմնավորված ծագմամբ',
+    criterion: `Հայտարարատուի և ընտանիքի անդամների կանխիկը տարեսկզբին կամ տարեվերջին (ա) մեծ է շեմից և (բ) առնվազն N անգամ գերազանցում է նրանց անկանխիկ միջոցները և ավանդները${withSavings ? ', (գ) գերազանցում է նախորդ բոլոր տարիների խնայողությունը (եկամուտ − ընթացիկ տարեկան ծախս)' : ''}. պայմանները ստուգվում են հաջորդաբար`,
+    srsRef: withSavings ? 'Բաժին 4, չափորոշիչ 6 (քաշ 25), պահուստային տարբերակ՝ (գ) պայմանով; Q-25' : 'Բաժին 4, չափորոշիչ 6 (քաշ 25)',
+    requirements: ['DEC-04', 'DEC-06', 'DEC-09', 'DEC-11'],
+    weight: 25,
+    ...(defaultEnabled === false ? { defaultEnabled: false } : {}),
+    builderExpression: `${moment('start')} or ${moment('end')}`,
+    params: [
+      { key: 'threshold', label: 'Կանխիկի շեմ', unit: 'AMD', default: { var: 'cash_threshold' } },
+      { key: 'ratio', label: 'Կանխիկի և անկանխիկ միջոցների հարաբերակցություն', unit: 'անգամ', default: { var: 'cash_ratio' } },
+    ],
+    caveats: [
+      'Կանխիկը և անկանխիկ միջոցները՝ հայտարարատուի և ընտանիքի անդամների գումարով. կանոնը գնահատվում է ընտանիքի ընդհանուր կազմով հաշվարկում (ընտանիքի անդամներ չլինելու դեպքում՝ հայտարարատուի հաշվարկում), անհատական հաշվարկներում կիրառելի չէ',
+      'Անկանխիկ միջոցներ և ավանդներ՝ բանկային հաշիվներ, էլեկտրոնային հաշիվներ և կրիպտոարժույթ, ավանդներ («առկա» ցանկեր)',
+      `Պայմանները ստուգվում են հաջորդաբար. (ա) չբավարարվելու դեպքում (բ)-ն չի ստուգվում${withSavings ? ', (բ) չբավարարվելու դեպքում՝ (գ)-ն' : ''}`,
+      withSavings
+        ? '(գ) Q-25. ծագումը հիմնավորված է, եթե կանխիկը չի գերազանցում նախորդ բոլոր տարիների հրապարակված տարեկան հայտարարագրերի խնայողության գումարը՝ Σ (եկամուտ − ընթացիկ տարեկան ծախս, 4.1). նախորդ հայտարարագիր չլինելու դեպքում՝ 0։ Պայմանը վերանայվում է, ուստի կանոնը լռելյայն անջատված է (DEC-R6-ի պահուստային տարբերակ)'
+        : '(գ) «գերազանցում է նախորդ բոլոր տարիների խնայողությունը» պայմանը վերանայվում է և այս կանոնում չի կիրառվում (ԿԿՀ-ի ճշտում 25.11.2026). այն ներառված է պահուստային, լռելյայն անջատված DEC-R6-2 կանոնում',
+      'Ծագման աղբյուրը (c_sourceoforigin) ցուցադրվում է տեղեկատվական. EPD-ում տարեվերջի ծագման դաշտը լրացված չէ',
+    ],
+    evaluate(scope, api) {
+      if (!scope.familyTotal) throw new NotApplicable('Գնահատվում է ընտանիքի ընդհանուր կազմով (հայտարարատու և ընտանիքի անդամներ)');
+      const threshold = api.param('threshold');
+      const ratio = api.param('ratio');
+      const e = scope.exp;
+      const fmt = (n) => Math.round(n).toLocaleString('hy-AM');
+      const origins = (fl) => [...new Set(e.rows('de_financialmeanscash').filter((r) => r.tabtype === 1).map((r) => lk('c_sourceoforigin', r[fl])).filter(Boolean))].join(', ');
+      let prev = null; // նախորդ տարիների խնայողությունը հաշվարկվում է միայն (գ)-ի ստուգման դեպքում
+      const savings = () => (prev ||= scope.prevSavings);
+      // հաջորդական ստուգում. failed՝ առաջին չբավարարված պայմանը (null՝ բոլորը բավարարված են)
+      const check = (label, cash, noncash) => {
+        if (!(cash > threshold)) return { label, cash, noncash, failed: 'ա' };
+        if (!(cash >= ratio * noncash)) return { label, cash, noncash, failed: 'բ' };
+        if (withSavings && !(cash > savings().total)) return { label, cash, noncash, failed: 'գ' };
+        return { label, cash, noncash, failed: null };
+      };
+      const moments = [check('տարեսկզբին', e.cashStart, e.noncashStart), check('տարեվերջին', e.cashEnd, e.noncashEnd)];
+      const steps = withSavings ? ['ա', 'բ', 'գ'] : ['ա', 'բ'];
+      const trail = (m) => {
+        const stop = m.failed ? steps.indexOf(m.failed) : steps.length;
+        return steps.map((st, i) => (i < stop ? `(${st}) այո` : i === stop ? `(${st}) ոչ` : `(${st}) չի ստուգվել`)).join(' → ');
+      };
+      const values = [
+        v.amd('Կանխիկ տարեսկզբին', e.cashStart), v.amd('Անկանխիկ միջոցներ և ավանդներ տարեսկզբին', e.noncashStart),
+        v.amd('Կանխիկ տարեվերջին', e.cashEnd), v.amd('Անկանխիկ միջոցներ և ավանդներ տարեվերջին', e.noncashEnd),
+        v.amd('Կանխիկի շեմ', threshold), v.num('Հարաբերակցություն', ratio, 'անգամ'),
+        ...(prev ? [...prev.years.map((y) => v.amd(`Խնայողություն ${y.year} (${y.code})՝ եկամուտ ${fmt(y.income)} − ծախս ${fmt(y.expense)}`, y.savings)),
+          v.amd(`Նախորդ տարիների խնայողություն${prev.years.length ? '' : ' (նախորդ հայտարարագիր չկա)'}`, prev.total)] : []),
+        ...moments.map((m) => v.text(`Պայմաններ ${m.label}`, trail(m))),
+        origins('sourceoforiginatbeginningofyear') && v.text('Ծագման աղբյուր (տարեսկզբին, հայտարարատուի նշմամբ)', origins('sourceoforiginatbeginningofyear')),
+        origins('sourceoforiginatendofyear') && v.text('Ծագման աղբյուր (տարեվերջին, հայտարարատուի նշմամբ)', origins('sourceoforiginatendofyear')),
+      ].filter(Boolean);
+      const hit = moments.find((m) => !m.failed);
+      if (hit) return fired(values, `Կանխիկը ${hit.label} (${fmt(hit.cash)} ֏) գերազանցում է շեմը և ${ratio} անգամ և ավելի գերազանցում է անկանխիկ միջոցներն ու ավանդները (${fmt(hit.noncash)} ֏)${withSavings ? ` և չի հիմնավորվում նախորդ տարիների խնայողությամբ (${fmt(prev.total)} ֏)` : ''}`);
+      const why = (m) => (m.failed === 'ա' ? `կանխիկը (${fmt(m.cash)} ֏) չի գերազանցում ${fmt(threshold)} ֏ շեմը`
+        : m.failed === 'բ' ? `կանխիկը (${fmt(m.cash)} ֏) ${ratio} անգամ չի գերազանցում անկանխիկ միջոցներն ու ավանդները (${fmt(m.noncash)} ֏)`
+          : `կանխիկը (${fmt(m.cash)} ֏) հիմնավորվում է նախորդ տարիների խնայողությամբ (${fmt(prev.total)} ֏)`);
+      return notFired(values, moments.map((m) => `${m.label}՝ ${why(m)}`).join('. '));
+    },
+  };
+}
+
 export const declarationRules = [
   {
     id: 'DEC-R1',
@@ -190,148 +282,106 @@ export const declarationRules = [
     id: 'DEC-R3',
     direction: 'declarations',
     title: 'Ներկայացվել է ուշացումով՝ վարչական տույժից հետո',
-    criterion: 'Հայտարարագիրը ներկայացվել (հրապարակվել) է ԿԿՀ-ի կիրառած վարչական տույժից (ՎԻՎ Ա ամսաթվից) հետո',
-    srsRef: 'Բաժին 4, չափորոշիչ 3 (քաշ 3); COM-11; տույժերի ֆայլ (Q-17)',
+    criterion: 'Անձն այս կամ նախորդ որևէ տարում (ցանկացած տեսակի հայտարարագրի համար) հայտարարագիրը ներկայացրել (հրապարակել) է ԿԿՀ-ի կիրառած վարչական տույժից (ՎԻՎ Ա ամսաթվից) հետո',
+    srsRef: 'Բաժին 4, չափորոշիչ 3 (քաշ 3); COM-11; տույժեր (Q-17)',
     requirements: ['COM-11', 'COM-12', 'COM-17', 'COM-18'],
     weight: 3,
     params: [],
     penaltyRule: true,
-    builderExpression: 'doc.is_published == 1 and ext.penalty_count >= 1 and ext.penalty_days_to_publication > 0',
+    builderExpression: 'ext.penalty_late_count >= 1',
     caveats: [
-      'Տույժերի տվյալները (արտաքին ֆայլ, COM-11) մուտքագրվում կամ ներմուծվում են «Արտաքին ֆայլեր → Տույժեր» էջում. առանց դրանց կանոնը «չի գնահատվել»',
-      'Տույժը հայտարարագրի հետ կապվում է ՀԾՀ + տարի + հայտարարագրի տեսակ. առանց դրանց գրառումները չեն կապվում (Q-17)',
-      'Տույժի ամսաթիվ՝ «ՎԻՎ Ա ամսաթիվ»։ Ներկայացում՝ հրապարակված կարգավիճակ, ամսաթիվը՝ publishedon',
-      'Ներառվում են ֆայլի բոլոր գրառումները (ՎԻՎ հիմքով զտում չկա)',
+      'Տույժերը վարվում են մոդուլում («Արտաքին ֆայլեր → Տույժեր» էջ, COM-11). առանց դրանց կանոնը «չի գնահատվել»',
+      'Կիրառվում է տարեկան հայտարարագրի վրա՝ անկախ այն բանից, թե որ տեսակի հայտարարագրի համար է տույժը (տարեկան, ստանձնելու, դադարեցնելու)',
+      'Ուշացումը մեկ անգամ գրանցվելուց հետո ցուցանիշը կիրառվում է այդ և հաջորդ բոլոր տարիների տարեկան հայտարարագրերի վրա՝ մեկ անգամ (քաշը չի գումարվում ըստ տույժերի քանակի)',
+      'Տույժը հայտարարագրի հետ կապվում է ՀԾՀ (պրոֆիլից) + տարի + հայտարարագրի տեսակ (+ հայտարարատուի տեսակ, եթե նշված է). ուշացում՝ հրապարակման ամսաթիվը (publishedon) ուշ է ՎԻՎ Ա ամսաթվից',
+      'Ընտանիքի անդամի տույժը կիրառվում է նրա առանձին հայտարարագրի (առանձին հաշվարկի) վրա',
     ],
     evaluate(scope) {
-      const pc = scope.penaltyCheck;
-      if (!pc) throw new NotApplicable('Ընտանիքի ընդհանուր կազմ. տույժերը վերաբերում են առանձին հայտարարագրին');
-      if (pc.status !== 'published') throw new NotApplicable('Հայտարարագիրը ներկայացված (հրապարակված) չէ. տես DEC-R4');
-      if (!pc.loaded) throw new NotEvaluated('Տույժերի տվյալները մուտքագրված չեն (COM-11). մուտքագրեք կամ ներմուծեք դրանք «Արտաքին ֆայլեր → Տույժեր» էջում');
-      const published = (pc.decl.publishedon || '').slice(0, 10);
-      const values = [v.text('Հրապարակման ամսաթիվ (publishedon)', fmtDate(published) || '—'), ...penaltyValues(pc.records)];
-      if (!pc.records.length) return notFired(values, 'Տույժերի ֆայլում այս հայտարարագրի (ՀԾՀ, տարի, տեսակ) համար տույժ չկա');
-      const before = pc.records.filter((r) => published && r.vivDate < published);
-      if (before.length) {
-        const r = before[0];
-        return fired(values, `Հայտարարագիրը հրապարակվել է ${fmtDate(published)}՝ վարչական տույժից (ՎԻՎ Ա ${r.vivNumber || '—'}, ${fmtDate(r.vivDate)}) ${daysBetween(r.vivDate, published)} օր հետո`);
-      }
-      return notFired(values, 'Հայտարարագիրը հրապարակվել է մինչև վարչական տույժը');
+      const pc = penaltyCheck(scope);
+      const values = penaltyEventValues(pc);
+      if (!pc.late.length) return notFired(values, `Մինչև ${pc.year} թ. ներառյալ տույժից հետո ներկայացված հայտարարագիր չկա`);
+      const e = pc.late[0];
+      return fired(values, `${e.year} թ. ${kindName(e.type)} հայտարարագիրը հրապարակվել է ${fmtDate(e.publishedOn)}՝ վարչական տույժից (ՎԻՎ Ա ${e.record.vivNumber || '—'}, ${fmtDate(e.record.vivDate)}) ${daysBetween(e.record.vivDate, e.publishedOn)} օր հետո. ցուցանիշը կիրառվում է ${e.year} թ. և հաջորդ տարիների տարեկան հայտարարագրերի վրա${pc.late.length > 1 ? ` (ուշացումով ներկայացումներ՝ ${pc.late.length}, կիրառվում է մեկ անգամ)` : ''}`);
     },
   },
   {
     id: 'DEC-R4',
     direction: 'declarations',
     title: 'Չի ներկայացվել նույնիսկ վարչական տույժից հետո',
-    criterion: 'Հայտարարագիրը չի ներկայացվել (հրապարակված չէ կամ EPD-ում ընդհանրապես չկա) ԿԿՀ-ի կիրառած վարչական տույժից հետո',
-    srsRef: 'Բաժին 4, չափորոշիչ 4 (քաշ 7); COM-11; տույժերի ֆայլ (Q-17)',
+    criterion: 'Անձն այս կամ նախորդ որևէ տարում (ցանկացած տեսակի հայտարարագրի համար) հայտարարագիրը չի ներկայացրել (հրապարակված չէ կամ EPD-ում չկա) ԿԿՀ-ի կիրառած վարչական տույժից հետո',
+    srsRef: 'Բաժին 4, չափորոշիչ 4 (քաշ 7); COM-11; տույժեր (Q-17)',
     requirements: ['COM-11', 'COM-12', 'COM-17', 'COM-18'],
     weight: 7,
     params: [],
     penaltyRule: true,
-    builderExpression: 'doc.is_published == 0 and ext.penalty_count >= 1',
+    builderExpression: 'ext.penalty_unsubmitted_count >= 1',
     caveats: [
-      'Տույժերի տվյալները (արտաքին ֆայլ, COM-11) մուտքագրվում կամ ներմուծվում են «Արտաքին ֆայլեր → Տույժեր» էջում. առանց դրանց կանոնը «չի գնահատվել»',
-      'Ներկայացված է համարվում միայն հրապարակված հայտարարագիրը. սևագիր, հանձնված, ուղղման ընթացքում գտնվող հայտարարագիրը համարվում է չներկայացված',
-      'Եթե տույժերի ֆայլում անձն ունի տույժ, բայց EPD-ում նրա համապատասխան հայտարարագիր չկա ոչ մի կարգավիճակով, ցանկում ավելանում է «Հայտարարագիր չկա» տող',
-      'Տույժը հայտարարագրի հետ կապվում է ՀԾՀ + տարի + հայտարարագրի տեսակ. առանց դրանց գրառումները չեն կապվում (Q-17)',
+      'Տույժերը վարվում են մոդուլում («Արտաքին ֆայլեր → Տույժեր» էջ, COM-11). առանց դրանց կանոնը «չի գնահատվել»',
+      'Կիրառվում է տարեկան հայտարարագրի վրա՝ անկախ այն բանից, թե որ տեսակի հայտարարագրի համար է տույժը. մեկ անգամ գրանցվելուց հետո՝ այդ և հաջորդ բոլոր տարիների տարեկան հայտարարագրերի վրա, մեկ անգամ',
+      'Ներկայացված է համարվում միայն հրապարակված հայտարարագիրը. սևագիր, հանձնված, ուղղման ընթացքում գտնվող հայտարարագիրը համարվում է չներկայացված։ Ավելի ուշ հրապարակվելու դեպքում իրադարձությունը դառնում է ուշացում (DEC-R3)',
+      'Եթե տարեկան հայտարարագրի տույժ կա, բայց EPD-ում այդ հայտարարագիրը չկա ոչ մի կարգավիճակով, ցանկում ավելանում է «Հայտարարագիր չկա» տող',
+      'Ընտանիքի անդամի տույժը կիրառվում է նրա առանձին հայտարարագրի (առանձին հաշվարկի) վրա',
     ],
     evaluate(scope) {
-      const pc = scope.penaltyCheck;
-      if (!pc) throw new NotApplicable('Ընտանիքի ընդհանուր կազմ. տույժերը վերաբերում են առանձին հայտարարագրին');
-      if (pc.status === 'published') throw new NotApplicable('Հայտարարագիրը ներկայացված (հրապարակված) է. տես DEC-R3');
-      if (!pc.loaded) throw new NotEvaluated('Տույժերի տվյալները մուտքագրված չեն (COM-11). մուտքագրեք կամ ներմուծեք դրանք «Արտաքին ֆայլեր → Տույժեր» էջում');
-      const state = pc.status === 'missing' ? 'EPD-ում հայտարարագիր չկա ոչ մի կարգավիճակով' : `Հայտարարագրի կարգավիճակ՝ «${lk('c_wfstate', pc.decl.wfstateid)}»`;
-      const values = [v.text('Հայտարարագիր', state), ...penaltyValues(pc.records)];
-      if (!pc.records.length) return notFired(values, 'Տույժերի ֆայլում այս հայտարարագրի (ՀԾՀ, տարի, տեսակ) համար տույժ չկա');
-      const r = pc.records[0];
-      return fired(values, `${state}, թեև ${fmtDate(r.vivDate)}-ին կիրառվել է վարչական տույժ (ՎԻՎ Ա ${r.vivNumber || '—'})`);
+      const pc = penaltyCheck(scope);
+      const values = penaltyEventValues(pc);
+      if (!pc.unsubmitted.length) return notFired(values, `Մինչև ${pc.year} թ. ներառյալ տույժից հետո էլ չներկայացված հայտարարագիր չկա`);
+      const e = pc.unsubmitted[0];
+      const state = e.decl ? `կարգավիճակ՝ «${lk('c_wfstate', e.decl.wfstateid)}»` : 'EPD-ում չկա';
+      return fired(values, `${e.year} թ. ${kindName(e.type)} հայտարարագիրը չի ներկայացվել (${state}), թեև ${fmtDate(e.record.vivDate)}-ին կիրառվել է վարչական տույժ (ՎԻՎ Ա ${e.record.vivNumber || '—'}). ցուցանիշը կիրառվում է ${e.year} թ. և հաջորդ տարիների տարեկան հայտարարագրերի վրա${pc.unsubmitted.length > 1 ? ` (չներկայացումներ՝ ${pc.unsubmitted.length}, կիրառվում է մեկ անգամ)` : ''}`);
     },
   },
   {
     id: 'DEC-R5',
     direction: 'declarations',
     title: 'Տարվա ընթացքում վերցված վարկ, որը չի գերազանցում տարեսկզբի կանխիկը',
-    criterion: 'Տարվա ընթացքում ստացված վարկերի և փոխառությունների գումարը > 0 և ≤ տարեսկզբի կանխիկ գումարը',
+    criterion: 'Տարվա ընթացքում ստացված վարկերի և փոխառությունների (բացի հիփոթեքայիններից) գումարը > 0 և ≤ տարեսկզբի կանխիկ գումարը',
     srsRef: 'Բաժին 4, չափորոշիչ 5 (քաշ 5)',
     requirements: ['DEC-04', 'DEC-06', 'DEC-11'],
     weight: 5,
-    builderExpression: 'doc.loans_received > 0 and doc.loans_received <= doc.cash_start',
+    builderExpression: 'doc.loans_received_nonmortgage > 0 and doc.loans_received_nonmortgage <= doc.cash_start',
     params: [],
     caveats: [
-      'Վերցված վարկի գումարը՝ եկամուտների «Ստացված փոխառություններ (վարկեր)» տեսակից (incometype 13). ներառում է և՛ բանկային վարկերը, և՛ փոխառությունները (EPD-ում դրանք չեն տարբերվում. վարկատուի ՀՎՀՀ-ն գրեթե միշտ դատարկ է)',
-      'Համեմատվում է տարվա բոլոր վարկերի և փոխառությունների գումարը տարեսկզբի կանխիկի հետ (de_financialmeanscash, «առկա» ցանկ)',
-      '«Կառուցապատողից գույք գնելու հիփոթեքային վարկ» բացառությունը չի կիրառվում. EPD-ում այդպիսի նշան չկա, իսկ եկամտի տողը կապված չէ չմարված վարկի կամ գույքի գործարքի հետ։ Չմարված վարկերի նպատակը և հիփոթեքի նշանը ցուցադրվում են մասնագետի համար',
+      'Վերցված վարկի գումարը՝ եկամուտների «Ստացված փոխառություններ (վարկեր)» տեսակից (incometype 13). ներառում է և՛ բանկային վարկերը, և՛ փոխառությունները',
+      'Հիփոթեքային վարկը չի հաշվվում (ԿԿՀ-ի ճշտում). հիփոթեքային է համարվում ստացված վարկի այն տողը, որի տեքստում (նկարագրություն, վճարող, կապի բնույթ) կա «Բանալի բառեր՝ հիփոթեքային վարկ» համակարգային փոփոխականի բառերից որևէ մեկը (բառի մաս)։ EPD-ում հիփոթեքի առանձին նշան ստացված վարկի տողում չկա. չմարված վարկերի տվյալները չեն օգտագործվում, քանի որ դրանք կարող են վերցված լինել նախորդ տարիներին',
+      'Համեմատվում է տարվա մնացած վարկերի և փոխառությունների գումարը տարեսկզբի կանխիկի հետ (de_financialmeanscash, «առկա» ցանկ)',
     ],
     evaluate(scope) {
       const e = scope.exp;
       const fmt = (n) => Math.round(n).toLocaleString('hy-AM');
-      const amdOf = (r, f) => { const a = r[`${f}_amount`]; const k = r[`${f}_ratetodefault`]; return a == null || k == null ? null : a * k; };
-      const loans = e.rows('de_revenuesincomes').filter((r) => r.incometype === 13);
-      const remaining = e.rows('de_revenuesremainingprincipals');
+      const L = receivedLoans(scope);
       const values = [
-        ...loans.map((r, i) => v.amd(`Ստացված վարկ/փոխառություն${loans.length > 1 ? ` ${i + 1}` : ''}${r.incomepayerfullname ? ` (${r.incomepayerfullname})` : ''}`, amdOf(r, 'amount'))),
-        v.amd('Ստացված վարկերի և փոխառությունների գումար', e.loansReceived),
+        ...L.rows.map((x, i) => v.amd(`Ստացված վարկ/փոխառություն${L.rows.length > 1 ? ` ${i + 1}` : ''}${x.row.incomepayerfullname ? ` (${x.row.incomepayerfullname})` : ''}${x.mortgage ? ` — հիփոթեքային («${x.keyword}»), չի հաշվվում` : ''}`, x.amd)),
+        ...(L.mortgage.length ? [v.amd('Ստացված վարկերի և փոխառությունների գումար (բոլորը)', L.allSum)] : []),
+        v.amd(L.mortgage.length ? 'Ստացված վարկեր և փոխառություններ՝ բացի հիփոթեքայիններից' : 'Ստացված վարկերի և փոխառությունների գումար', L.otherSum),
         v.amd('Կանխիկ տարեսկզբին', e.cashStart),
-        ...remaining.map((r) => v.text(`Չմարված ${r.type === 2 ? 'փոխառություն' : 'վարկ'}${r.lenderfullname ? ` (${r.lenderfullname})` : ''}`,
-          [r.creditpurpose || r.loanpurpose, r.hasmortgage === 1 ? `հիփոթեք${r.subjectofmortgage ? `՝ ${r.subjectofmortgage}` : ''}` : null, amdOf(r, r.type === 2 ? 'loanbalance' : 'creditprincipalbalance') != null ? `մնացորդ ${fmt(amdOf(r, r.type === 2 ? 'loanbalance' : 'creditprincipalbalance'))} ֏` : null].filter(Boolean).join(' · ') || '—')),
       ];
-      if (!(e.loansReceived > 0)) return notFired(values, 'Տարվա ընթացքում վարկ կամ փոխառություն չի ստացվել');
-      if (e.loansReceived <= e.cashStart) return fired(values, `Տարվա ընթացքում ստացվել է ${fmt(e.loansReceived)} ֏ վարկ/փոխառություն, թեև տարեսկզբին առկա էր ${fmt(e.cashStart)} ֏ կանխիկ`);
-      return notFired(values, `Ստացված վարկերը/փոխառությունները (${fmt(e.loansReceived)} ֏) գերազանցում են տարեսկզբի կանխիկը (${fmt(e.cashStart)} ֏)`);
+      const excl = L.mortgage.length ? ` (հիփոթեքային վարկը՝ ${fmt(L.allSum - L.otherSum)} ֏, չի հաշվվում)` : '';
+      if (!(L.otherSum > 0)) return notFired(values, L.mortgage.length ? `Տարվա ընթացքում ստացվել է միայն հիփոթեքային վարկ (${fmt(L.allSum)} ֏), որը չի հաշվվում` : 'Տարվա ընթացքում վարկ կամ փոխառություն չի ստացվել');
+      if (L.otherSum <= e.cashStart) return fired(values, `Տարվա ընթացքում ստացվել է ${fmt(L.otherSum)} ֏ վարկ/փոխառություն${excl}, թեև տարեսկզբին առկա էր ${fmt(e.cashStart)} ֏ կանխիկ`);
+      return notFired(values, `Ստացված վարկերը/փոխառությունները (${fmt(L.otherSum)} ֏${excl}) գերազանցում են տարեսկզբի կանխիկը (${fmt(e.cashStart)} ֏)`);
     },
   },
-  {
-    id: 'DEC-R6',
-    direction: 'declarations',
-    title: 'Խոշոր կանխիկ՝ չհիմնավորված ծագմամբ',
-    criterion: 'Տարեսկզբին կամ տարեվերջին կանխիկը միաժամանակ (ա) մեծ է շեմից, (բ) առնվազն N անգամ գերազանցում է անկանխիկ միջոցները և ավանդները, (գ) գերազանցում է նախորդ բոլոր տարիների խնայողությունը (եկամուտ − ընթացիկ տարեկան ծախս)',
-    srsRef: 'Բաժին 4, չափորոշիչ 6 (քաշ 25); Q-25',
-    requirements: ['DEC-04', 'DEC-06', 'DEC-09', 'DEC-11'],
-    weight: 25,
-    builderExpression: '(doc.cash_start > var.cash_threshold and doc.cash_start >= var.cash_ratio * doc.noncash_start and doc.cash_start > doc.prev_savings) or (doc.cash_end > var.cash_threshold and doc.cash_end >= var.cash_ratio * doc.noncash_end and doc.cash_end > doc.prev_savings)',
-    params: [
-      { key: 'threshold', label: 'Կանխիկի շեմ', unit: 'AMD', default: { var: 'cash_threshold' } },
-      { key: 'ratio', label: 'Կանխիկի և անկանխիկ միջոցների հարաբերակցություն', unit: 'անգամ', default: { var: 'cash_ratio' } },
-    ],
-    caveats: [
-      'Անկանխիկ միջոցներ և ավանդներ՝ բանկային հաշիվներ, էլեկտրոնային հաշիվներ և կրիպտոարժույթ, ավանդներ («առկա» ցանկեր)',
-      '(գ) ԿԿՀ-ի որոշմամբ (Q-25). ծագումը հիմնավորված է, եթե կանխիկը չի գերազանցում նախորդ բոլոր տարիների հրապարակված տարեկան հայտարարագրերի խնայողության գումարը՝ Σ (եկամուտ − ընթացիկ տարեկան ծախս, 4.1). նախորդ հայտարարագիր չլինելու դեպքում՝ 0։ «ԿԿՀ-ին հասանելի տվյալները» հաշվի չեն առնվում',
-      'Ծագման աղբյուրը (c_sourceoforigin) ցուցադրվում է տեղեկատվական. EPD-ում տարեվերջի ծագման դաշտը լրացված չէ',
-    ],
-    evaluate(scope, api) {
-      const threshold = api.param('threshold');
-      const ratio = api.param('ratio');
-      const e = scope.exp;
-      const prev = scope.prevSavings;
-      const fmt = (n) => Math.round(n).toLocaleString('hy-AM');
-      const origins = (f) => [...new Set(e.rows('de_financialmeanscash').filter((r) => r.tabtype === 1).map((r) => lk('c_sourceoforigin', r[f])).filter(Boolean))].join(', ');
-      const check = (label, cash, noncash) => ({ label, cash, noncash, a: cash > threshold, b: cash >= ratio * noncash, c: cash > prev.total });
-      const moments = [check('տարեսկզբին', e.cashStart, e.noncashStart), check('տարեվերջին', e.cashEnd, e.noncashEnd)];
-      const yn = (x) => (x ? 'այո' : 'ոչ');
-      const values = [
-        v.amd('Կանխիկ տարեսկզբին', e.cashStart), v.amd('Անկանխիկ միջոցներ և ավանդներ տարեսկզբին', e.noncashStart),
-        v.amd('Կանխիկ տարեվերջին', e.cashEnd), v.amd('Անկանխիկ միջոցներ և ավանդներ տարեվերջին', e.noncashEnd),
-        v.amd('Կանխիկի շեմ', threshold), v.num('Հարաբերակցություն', ratio, 'անգամ'),
-        ...prev.years.map((y) => v.amd(`Խնայողություն ${y.year} (${y.code})՝ եկամուտ ${fmt(y.income)} − ծախս ${fmt(y.expense)}`, y.savings)),
-        v.amd(`Նախորդ տարիների խնայողություն${prev.years.length ? '' : ' (նախորդ հայտարարագիր չկա)'}`, prev.total),
-        ...moments.map((m) => v.text(`Պայմաններ ${m.label} (ա / բ / գ)`, `${yn(m.a)} / ${yn(m.b)} / ${yn(m.c)}`)),
-        origins('sourceoforiginatbeginningofyear') && v.text('Ծագման աղբյուր (տարեսկզբին, հայտարարատուի նշմամբ)', origins('sourceoforiginatbeginningofyear')),
-        origins('sourceoforiginatendofyear') && v.text('Ծագման աղբյուր (տարեվերջին, հայտարարատուի նշմամբ)', origins('sourceoforiginatendofyear')),
-      ].filter(Boolean);
-      const hit = moments.find((m) => m.a && m.b && m.c);
-      if (hit) return fired(values, `Կանխիկը ${hit.label} (${fmt(hit.cash)} ֏) գերազանցում է շեմը, ${ratio} անգամ և ավելի գերազանցում է անկանխիկ միջոցներն ու ավանդները (${fmt(hit.noncash)} ֏) և չի հիմնավորվում նախորդ տարիների խնայողությամբ (${fmt(prev.total)} ֏)`);
-      const big = moments.filter((m) => m.a);
-      if (!big.length) return notFired(values, `Կանխիկը տարեսկզբին և տարեվերջին չի գերազանցում ${fmt(threshold)} ֏ շեմը`);
-      return notFired(values, big.map((m) => `${m.label}՝ ${!m.b ? `կանխիկը (${fmt(m.cash)} ֏) ${ratio} անգամ չի գերազանցում անկանխիկ միջոցներն ու ավանդները (${fmt(m.noncash)} ֏)` : `կանխիկը (${fmt(m.cash)} ֏) հիմնավորվում է նախորդ տարիների խնայողությամբ (${fmt(prev.total)} ֏)`}`).join('. '));
-    },
-  },
+  cashRule({ id: 'DEC-R6', withSavings: false }),
+  // պահուստային (անջատված). ներառում է նաև (գ) պայմանը՝ նախորդ տարիների խնայողությունը (վերանայվում է)
+  cashRule({ id: 'DEC-R6-2', withSavings: true, defaultEnabled: false }),
 ];
 
-/** Տույժերի ֆայլի գրառումները կանոնի արդյունքում */
-function penaltyValues(records) {
-  return records.map((r, i) => v.text(`Վարչական տույժ${records.length > 1 ? ` ${i + 1}` : ''}`,
-    [`ՎԻՎ Ա ${r.vivNumber || '—'} ${fmtDate(r.vivDate)}`, r.basis && `հիմք ${r.basis}`, r.act && `վարչական ակտ՝ ${r.act}`, r.decisionDate && `որոշում ${fmtDate(r.decisionDate)}`].filter(Boolean).join(' · ')));
+/** Տույժերի տվյալներ (DEC-R3, DEC-R4). ընտանիքի ընդհանուր կազմում կիրառելի չէ */
+function penaltyCheck(scope) {
+  const pc = scope.penaltyCheck;
+  if (!pc) throw new NotApplicable('Ընտանիքի ընդհանուր կազմ. տույժերը կիրառվում են անձի առանձին հայտարարագրի վրա');
+  if (!pc.loaded) throw new NotEvaluated('Տույժերի տվյալները մուտքագրված չեն (COM-11). մուտքագրեք կամ ներմուծեք դրանք «Արտաքին ֆայլեր → Տույժեր» էջում');
+  return pc;
+}
+const kindName = (type) => ({ 1: 'տարեկան', 2: 'պաշտոնը ստանձնելու', 3: 'պաշտոնը դադարեցնելու' }[type] || '');
+const EVENT_TEXT = { late: 'ներկայացվել է տույժից հետո', unsubmitted: 'չի ներկայացվել', before: 'ներկայացվել է մինչև տույժը' };
+
+/** Անձի տույժերը մինչև հաշվետու տարին ներառյալ՝ կանոնի արդյունքում */
+function penaltyEventValues(pc) {
+  if (!pc.events.length) return [v.text('Վարչական տույժեր', `Մինչև ${pc.year} թ. ներառյալ չկան`)];
+  return pc.events.map((e, i) => { const r = e.record; return v.text(`Վարչական տույժ${pc.events.length > 1 ? ` ${i + 1}` : ''}`,
+    [`${e.year} թ. ${kindName(e.type)}`, `ՎԻՎ Ա ${r.vivNumber || '—'} ${fmtDate(r.vivDate)}`, e.decl?.code, `${EVENT_TEXT[e.kind]}${e.publishedOn ? ` (${fmtDate(e.publishedOn)})` : ''}`, r.basis && `հիմք ${r.basis}`].filter(Boolean).join(' · ')); });
 }
 const daysBetween = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 864e5);
 

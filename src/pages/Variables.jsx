@@ -4,8 +4,9 @@ import TuneIcon from '@mui/icons-material/Tune';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { useStore, can } from '../engine/store.js';
-import { VARIABLE_DEFS, DEMO_VALUES, variableValue, allVariableDefs, varDirections, variableDefByKey, hiddenCodeVariables } from '../engine/variables.js';
-import { variableImpact } from '../engine/variableUsage.js';
+import { DEMO_VALUES, variableValue, allVariableDefs, varDirections, variableDefByKey, hiddenCodeVariables } from '../engine/variables.js';
+import { variableImpact, refUsage } from '../engine/variableUsage.js';
+import { SERVICES } from '../adapters/transport.js';
 import { DIRECTIONS } from '../rules/common.js';
 import { PageHeader, Section, InfoNote, fmtDate, fmtNum, navigate } from '../components/common.jsx';
 import { METRICS } from '../engine/metrics.js';
@@ -140,7 +141,7 @@ export default function VariablesPage({ tab: tabParam }) {
         return (
           <>
             <TabBar tab={tab} labels={{ ...DIRECTIONS, common: 'Ընդհանուր' }} />
-            <Section title="Սահմանվող (համակարգային) փոփոխականներ" actions={newBtn([tab])}>
+            <Section title="Համակարգային (սահմանվող) փոփոխականներ" actions={newBtn([tab])}>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Ֆիքսված արժեքներ (շեմեր, գործակիցներ, բառերի ցանկեր)՝ գործողության սկզբի ամսաթվով։ Կանոնը օգտագործում է փաստաթղթի հաշվետու ամսաթվին գործող արժեքը. կանոններում՝ var.&lt;նշան&gt;։</Typography>
               {defs.length ? <VarTable defs={defs} /> : <Typography color="text.secondary">Փոփոխականներ չկան։</Typography>}
               {hiddenNote}
@@ -150,7 +151,9 @@ export default function VariablesPage({ tab: tabParam }) {
                 </Typography>
               )}
             </Section>
+            <SimpleVarsSection direction={tab} />
             <DerivedVarsSection key={tab} direction={tab} />
+            <ExternalVarsSection direction={tab} />
           </>
         );
       })()}
@@ -299,6 +302,57 @@ function DerivedVarsSection({ direction }) {
         </Table>
       </Box>
       {edit && <DerivedVarDialog open initial={edit.initial} direction={edit.initial?.direction || direction} level={edit.initial?.level} state={state} usedBy={edit.initial ? derivedUsage(state, edit.initial) : []} onClose={() => setEdit(null)} onSave={save} onRestore={restore} />}
+    </Section>
+  );
+}
+
+/** Տեղեկատվական աղյուսակ (պարզ և արտաքին փոփոխականներ). խմբագրելի չեն */
+function InfoVarTable({ rows, ns, sourceLabel, direction }) {
+  const { state } = useStore();
+  return (
+    <Box sx={{ overflowX: 'auto', maxHeight: 420, overflowY: 'auto' }}>
+      <Table size="small" stickyHeader>
+        <TableHead><TableRow><TableCell>Փոփոխական</TableCell><TableCell>{sourceLabel}</TableCell><TableCell>Օգտագործվում է</TableCell></TableRow></TableHead>
+        <TableBody>
+          {rows.map((m) => (
+            <TableRow key={m.key}>
+              <TableCell sx={{ minWidth: 240 }}>
+                <Typography variant="body2">{m.label}</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>{ns}.{m.key}</Typography>
+                {m.level && direction === 'parties' && <Chip size="small" label={METRICS.parties.levels[m.level]} sx={{ ml: 1, height: 18 }} />}
+              </TableCell>
+              <TableCell><Typography variant="caption" sx={{ fontFamily: ns === 'doc' ? 'monospace' : undefined }}>{m.sourceText}</Typography></TableCell>
+              <TableCell><Typography variant="caption">{refUsage(state, ns, m.key, direction).join(', ') || '—'}</Typography></TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </Box>
+  );
+}
+
+/** Պարզ փոփոխականներ՝ փաստաթղթի մեկ դաշտ (EPD). տեղեկատվական (COM-04) */
+function SimpleVarsSection({ direction }) {
+  const rows = METRICS[direction].doc.filter((m) => m.kind === 'simple').map((m) => ({ ...m, sourceText: m.source }));
+  return (
+    <Section title="Պարզ փոփոխականներ (EPD)">
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+        Փաստաթղթի մեկ դաշտ EPD-ից (աղյուսակի տողերի դեպքում՝ գումար ՀՀ դրամով)։ Արժեքները վերցվում են փաստաթղթից, ուստի այստեղ չեն խմբագրվում։ Կանոնների կառուցիչում հասանելի են «Պարզ» խմբում (doc.&lt;նշան&gt;) և օգտագործվում են բարդ փոփոխականների բանաձևերում։
+      </Typography>
+      {rows.length ? <InfoVarTable rows={rows} ns="doc" sourceLabel="EPD դաշտ" direction={direction} /> : <Typography color="text.secondary">Չկան։</Typography>}
+    </Section>
+  );
+}
+
+/** Արտաքին փոփոխականներ՝ արտաքին համակարգերից (ԷԿԵՆԳ ծառայություններ) և մոդուլի տույժերից. տեղեկատվական */
+function ExternalVarsSection({ direction }) {
+  const rows = METRICS[direction].ext.map((m) => ({ ...m, sourceText: m.service === 'penalties' ? 'Տույժեր (մոդուլ, «Արտաքին ֆայլեր → Տույժեր»)' : SERVICES[m.service]?.name || m.service }));
+  return (
+    <Section title="Արտաքին փոփոխականներ">
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+        Արժեքները ստացվում են արտաքին համակարգերից (<Link component="button" variant="body2" onClick={() => navigate('/external')} sx={{ verticalAlign: 'baseline' }}>«Արտաքին համակարգեր»</Link>) կամ մոդուլում վարվող տույժերից գնահատման պահին և այստեղ չեն խմբագրվում։ Աղբյուրի անհասանելիության դեպքում դրանցից կախված կանոնները «չի գնահատվել» կարգավիճակում են։ Կանոնների կառուցիչում՝ ext.&lt;նշան&gt;։
+      </Typography>
+      {rows.length ? <InfoVarTable rows={rows} ns="ext" sourceLabel="Աղբյուր" direction={direction} /> : <Typography color="text.secondary">Այս ուղղությունում արտաքին փոփոխականներ չկան։</Typography>}
     </Section>
   );
 }

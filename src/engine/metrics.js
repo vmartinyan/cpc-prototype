@@ -8,7 +8,7 @@ import { NotEvaluated, NotApplicable } from './expression.js';
 import { byInstance, amd, isYes, profileChildren } from '../data/epd/repository.js';
 import { TAB } from '../data/epd/classifiers.js';
 import { DEFAULT_FORMULAS } from './annualExpense.js';
-import { civilKinshipOfScope } from '../rules/declarations.js';
+import { civilKinshipOfScope, receivedLoans } from '../rules/declarations.js';
 
 const ssnOf = (profileId) => byInstance('de_profile', profileId)?.ssn;
 
@@ -80,7 +80,7 @@ export function tableLabel(direction, name) {
 
 /** Տույժերի ստուգման տվյալներ (DEC-R3, DEC-R4). ընտանիքի ընդհանուր կազմում կիրառելի չէ */
 function penaltyCheckOf(s) {
-  if (!s.penaltyCheck) throw new NotApplicable('Ընտանիքի ընդհանուր կազմ. տույժերը վերաբերում են առանձին հայտարարագրին');
+  if (!s.penaltyCheck) throw new NotApplicable('Ընտանիքի ընդհանուր կազմ. տույժերը կիրառվում են անձի առանձին հայտարարագրի վրա');
   return s.penaltyCheck;
 }
 function penaltiesLoaded(s) {
@@ -89,6 +89,11 @@ function penaltiesLoaded(s) {
   return pc;
 }
 
+/** Ընտանիքի ընդհանուր կազմի գումար (DEC-R6). անհատական հաշվարկում (եթե ընտանիքի կազմով հաշվարկ կա)՝ կիրառելի չէ */
+function familyTotal(s, f) {
+  if (!s.familyTotal) throw new NotApplicable('Գնահատվում է ընտանիքի ընդհանուր կազմով (հայտարարատու և ընտանիքի անդամներ)');
+  return f(s);
+}
 /** Հայտարարագրում նշված մերձավոր ազգականների քանակ ըստ տեսակի (c_relativetype) */
 /** Աղյուսակի մեկ դաշտի գումար ՀՀ դրամով (հաշվարկի շրջանակի տողեր, ճշգրտումներով, առանց մերժվածների) */
 const fieldSum = (s, table, tab, f) => s.exp.rows(table).filter((r) => r.tabtype === tab).reduce((a, r) => a + (amd(r, f) || 0), 0);
@@ -119,7 +124,7 @@ export const METRICS = {
       // ── բարդ փոփոխականներ
       { key: 'money_start', label: 'Դս — դրամական միջոցներ տարեսկզբին', get: (s) => s.exp.Ds },
       { key: 'money_end', label: 'Դվ — դրամական միջոցներ տարեվերջին', get: (s) => s.exp.Dv },
-      { key: 'income', label: 'Ե — տարվա եկամուտներ', source: 'de_revenuesincomes.amount (բոլոր տեսակները)', get: (s) => s.exp.E },
+      { key: 'income', label: 'Ե — տարվա եկամուտներ', source: 'de_revenuesincomes.amount (բոլոր տեսակները) + մասնագետի ավելացրած օտարումներ', get: (s) => s.exp.E },
       { key: 'acquisitions', label: 'Գ — ձեռք բերված գույք', get: (s) => s.exp.G },
       { key: 'loans_deposits_start', label: 'Փս — փոխառություններ և ավանդներ տարեսկզբին', get: (s) => s.exp.Ps },
       { key: 'loans_deposits_end', label: 'Փվ — փոխառություններ և ավանդներ տարեվերջին', get: (s) => s.exp.Pv },
@@ -131,6 +136,14 @@ export const METRICS = {
       { key: 'noncash_end', label: 'Անկանխիկ միջոցներ և ավանդներ տարեվերջին', get: (s) => s.exp.noncashEnd },
       { key: 'prev_savings', label: 'Նախորդ բոլոր տարիների խնայողություն՝ Σ (եկամուտ − ընթացիկ տարեկան ծախս)', get: (s) => s.prevSavings.total },
       { key: 'loans_received', label: 'Տարվա ընթացքում ստացված վարկեր և փոխառություններ (եկամտի տեսակ 13)', source: 'de_revenuesincomes.amount (եկամտի տեսակ 13)', get: (s) => s.exp.loansReceived },
+      { key: 'manual_acquisitions', label: 'Ձեռքբերումներ՝ մասնագետի ավելացրած («Հայտարարագրի ճշգրտումներ», DEC-10)', source: 'Մոդուլ. հայտարարագրի ճշգրտումներ (ձեռքբերում)', get: (s) => s.exp.manualAcquisitions },
+      { key: 'manual_alienations', label: 'Օտարումներ՝ մասնագետի ավելացրած («Հայտարարագրի ճշգրտումներ», DEC-10). ներառված են եկամուտներում', source: 'Մոդուլ. հայտարարագրի ճշգրտումներ (օտարում)', get: (s) => s.exp.manualAlienations },
+      { key: 'loans_received_nonmortgage', label: 'Տարվա ընթացքում ստացված վարկեր և փոխառություններ, բացի հիփոթեքայիններից (DEC-R5)', get: (s) => receivedLoans(s).otherSum },
+      // ընտանիքի ընդհանուր կազմով (հայտարարատու + ընտանիքի անդամներ) գումարներ (DEC-R6). մյուս հաշվարկներում կիրառելի չեն
+      ...[['cash_start', 'Կանխիկ տարեսկզբին', (s) => s.exp.cashStart], ['cash_end', 'Կանխիկ տարեվերջին', (s) => s.exp.cashEnd],
+        ['noncash_start', 'Անկանխիկ միջոցներ և ավանդներ տարեսկզբին', (s) => s.exp.noncashStart], ['noncash_end', 'Անկանխիկ միջոցներ և ավանդներ տարեվերջին', (s) => s.exp.noncashEnd],
+        ['prev_savings', 'Նախորդ տարիների խնայողություն', (s) => s.prevSavings.total]]
+        .map(([k, label, f]) => ({ key: `family_${k}`, label: `${label}՝ ընտանիքի ընդհանուր կազմով (հայտարարատու և ընտանիքի անդամներ)`, get: (s) => familyTotal(s, f) })),
       { key: 'salary_income', label: 'Հայտարարագրված աշխատավարձ', source: 'de_revenuesincomes.amount (եկամտի տեսակ 1)', get: (s) => s.exp.salary },
       { key: 'declared_expenses', label: 'Հայտարարագրված ծախսեր', source: 'de_expensesdetails.amount', get: (s) => s.exp.declaredExpenses },
       { key: 'alienations', label: 'Օտարված գույքի գումար', get: (s) => s.exp.alienations },
@@ -167,15 +180,10 @@ export const METRICS = {
         get: (s, x) => civilKinshipOfScope(s, x).civil.relatives },
       { key: 'civil_inlaws_count', service: 'civil', label: 'ՔԿԱԳ. խնամիներ՝ ամուսնու/կնոջ ծնողներ',
         get: (s, x) => civilKinshipOfScope(s, x).civil.inlaws },
-      { key: 'penalty_count', service: 'penalties', label: 'Տույժեր. այս հայտարարագրի (ՀԾՀ + տարի + տեսակ) վարչական տույժերի քանակ',
-        get: (s) => penaltiesLoaded(s).records.length },
-      { key: 'penalty_days_to_publication', service: 'penalties', label: 'Տույժեր. քանի օր հետո է հրապարակվել հայտարարագիրը ամենավաղ տույժից (բացասական՝ տույժից առաջ)',
-        get: (s) => {
-          const pc = penaltiesLoaded(s);
-          if (pc.status !== 'published') throw new NotApplicable('Հայտարարագիրը ներկայացված (հրապարակված) չէ');
-          if (!pc.records.length) throw new NotEvaluated('Այս հայտարարագրի համար տույժ չկա');
-          return Math.round((Date.parse(pc.decl.publishedon.slice(0, 10)) - Date.parse(pc.records[0].vivDate)) / 864e5);
-        } },
+      { key: 'penalty_late_count', service: 'penalties', label: 'Տույժեր. անձի հայտարարագրեր (ցանկացած տեսակի, այս և նախորդ տարիների), որոնք ներկայացվել են վարչական տույժից հետո',
+        get: (s) => penaltiesLoaded(s).late.length },
+      { key: 'penalty_unsubmitted_count', service: 'penalties', label: 'Տույժեր. անձի հայտարարագրեր (ցանկացած տեսակի, այս և նախորդ տարիների), որոնք չեն ներկայացվել նույնիսկ վարչական տույժից հետո',
+        get: (s) => penaltiesLoaded(s).unsubmitted.length },
     ],
   },
   gifts: {

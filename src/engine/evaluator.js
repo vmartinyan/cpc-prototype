@@ -15,11 +15,11 @@
  */
 import { current, byInstance, children, detailRows, sectionOf, profileChildren, profileName, liveProfileOf, liveProfileBySsn } from '../data/epd/repository.js';
 import { lk, WF, DECLARATION_TYPE, DECLARANT_TYPE, INTEGRITY_STUDY_STATE } from '../data/epd/classifiers.js';
-import { BUILTIN_RULES } from '../rules/catalog.js';
+import { BUILTIN_RULES, MANUAL_RULES } from '../rules/catalog.js';
 import { PARTY_POLICY } from '../rules/parties.js';
 import { STATUS } from '../rules/common.js';
 import { computeExpense, effectiveFormulas } from './annualExpense.js';
-import { indexPenalties, penaltyKey } from '../data/penalties.js';
+import { indexPenalties, penaltyKey, isLinkable } from '../data/penalties.js';
 import { variableValue, variableDefOf } from './variables.js';
 import { parse, evaluate as evalExpr, dependencies, NotEvaluated, NotApplicable, truthy } from './expression.js';
 import { METRICS, resolveTable } from './metrics.js';
@@ -59,7 +59,7 @@ export function effectiveRules(state) {
       id: r.id, direction: r.direction, level: r.level, srsRef: r.srsRef, requirements: r.requirements, external: r.external, partial: r.partial,
       title: c.title || r.title,
       criterion: c.criterion || r.criterion,
-      enabled: c.enabled ?? true,
+      enabled: c.enabled ?? r.defaultEnabled ?? true,
       weight: r.direction === 'declarations' ? c.weight ?? r.weight : undefined,
     };
     const bindings = { ...Object.fromEntries((r.params || []).map((p) => [p.key, p.default])), ...(c.params || {}) };
@@ -231,15 +231,43 @@ function labelFor(direction, key, derived, state) {
 }
 
 const manualFor = (state, direction, unitId) => (state.manualFlags || []).filter((f) => f.direction === direction && f.unitId === unitId);
+/** DEC-R7-ի առավելագույն քաշ՝ նրա բաժինը քաշերի բաշխման մեջ (կանոնների կարգավորում, «Քաշերի բաշխում») */
+export const manualMaxWeight = (state) => Number(state?.ruleConfig?.['DEC-R7']?.weight ?? MANUAL_RULES[0].weight) || 0;
+
 /**
- * Ձեռքով ռիսկային նշման (DEC-R7) հաշվարկ՝ ըստ ընտրված տարբերակի. «individual»՝ հայտարարատուի առանձին հաշվարկ,
- * «family»՝ ընտանիքի ընդհանուր կազմ։ Ընտանիքի անդամների առանձին հաշվարկներին չի գումարվում։ Նախկին նշումները (առանց
- * տարբերակի) համարվում են հայտարարատուի առանձին հաշվարկի համար. ընտանիքի կազմով հաշվարկի բացակայության դեպքում՝ նույնպես
+ * Հայտարարագրերի ակտիվ կանոնների քաշերի գումար + DEC-R7-ի առավելագույն քաշ. պետք է լինի 100 (ԿԿՀ-ի ճշտում 25.11.2026)։
+ * @param rules effectiveRules(state)
  */
-export const manualScopeOf = (m) => (m.scope === 'family' ? 'family' : 'individual');
-const manualWeightFor = (manual, scope, isDeclarantScope, hasFamily) => manual
-  .filter((m) => (scope.kind === 'family' ? manualScopeOf(m) === 'family' : isDeclarantScope && (manualScopeOf(m) === 'individual' || !hasFamily)))
-  .reduce((a, m) => a + m.weight, 0);
+export const WEIGHT_TOTAL = 100;
+export const declarationWeightTotal = (state, rules = effectiveRules(state)) =>
+  rules.filter((r) => r.direction === 'declarations' && r.enabled).reduce((a, r) => a + (Number(r.weight) || 0), 0) + manualMaxWeight(state);
+
+/**
+ * Ձեռքով ռիսկային նշում (DEC-R7). մեկ նշում հայտարարագրի համար (Գ2-ի պայմաններում հաշվարկի ընտրություն չկա)։
+ * Նախկին տվյալներում մի քանի նշման դեպքում (առանձին և ընտանիքի կազմ)՝ ավելի մեծ քաշը, հիմնավորումները միասին
+ */
+export function mergedManual(flags, max) {
+  if (!flags.length) return null;
+  return { ruleId: 'DEC-R7', weight: Math.min(Math.max(...flags.map((m) => Number(m.weight) || 0)), max), note: flags.map((m) => m.note).filter(Boolean).join('; '), ids: flags.map((m) => m.id) };
+}
+
+/**
+ * Համախառն միավոր (DEC-04, Գ2, ԿԿՀ-ի ճշտում 25.11.2026). բոլոր հաշվարկներում (պաշտոնատար անձ, առանձին հայտարարագրող
+ * ընտանիքի անդամներ, ընտանիքի ընդհանուր կազմ) աշխատած եզակի ցուցանիշների քաշերի գումար + DEC-R7. յուրաքանչյուր
+ * ցուցանիշ հաշվվում է մեկ անգամ, ուստի քաշերի գումարը 100 լինելու դեպքում միավորը 100-ից չի անցնում
+ * @returns { score, indicators: [{ ruleId, weight, scopes: [հաշվարկի անվանում], manual?, note? }] }
+ */
+export function combinedScore(scopes, manual) {
+  const map = new Map();
+  for (const sc of scopes) for (const r of Object.values(sc.results || {})) {
+    if (r.status !== STATUS.fired) continue;
+    if (!map.has(r.ruleId)) map.set(r.ruleId, { ruleId: r.ruleId, weight: Number(r.weight) || 0, scopes: [] });
+    map.get(r.ruleId).scopes.push(sc.label);
+  }
+  const indicators = [...map.values()];
+  if (manual) indicators.push({ ruleId: 'DEC-R7', weight: manual.weight, scopes: [], manual: true, note: manual.note });
+  return { score: indicators.reduce((t, x) => t + x.weight, 0), indicators };
+}
 
 // ───────────────────────────── հայտարարագրեր
 
@@ -317,18 +345,79 @@ function buildDeclarationScopes(d, corrections, checkFor = () => undefined, form
     const memberLive = fam.map((f) => liveProfileOf(byInstance('de_profile', f.profile))?.instanceid).filter(Boolean);
     scopes.push(mk({ key: 'family', kind: 'family', label: `Ընտանիքի ընդհանուր կազմ (${fam.length + 1} անձ)`, decls: famDecls, filter: famFilter, persons: fam.length + 1, profiles: [d.originaldeclarant, ...memberLive] }));
   }
-  for (const s of scopes) s.table = (name) => s.exp.rows(name);
+  // ընտանիքի ընդհանուր կազմի հաշվարկ (DEC-R6). ընտանիքի անդամներ չլինելու դեպքում՝ հայտարարատուի հաշվարկը
+  for (const s of scopes) { s.table = (name) => s.exp.rows(name); s.familyTotal = s.kind === 'family' || (!fam.length && s === scopes[0]); }
   return { scopes, linked, fam, officials };
+}
+
+/** Հայտարարատուի ՀԾՀ. պրոֆիլից (EPD-ում de_declaration.ssn-ը լրացված է հայտարարագրերի միայն ~17%-ում, պրոֆիլինը՝ 99.6%-ում) */
+export const declarationSsn = (d) => byInstance('de_profile', d.originaldeclarant)?.ssn || d.ssn || null;
+
+/** Տույժերի ֆայլի «Հայտարարատուի տեսակ» → c_declaranttype (նույն անձի տարբեր դերերի հայտարարագրերը տարբերելու համար) */
+const PENALTY_DECLARANT = { 'Պ/Ա': DECLARANT_TYPE.officer, 'Ը/Ա': DECLARANT_TYPE.family, 'Կ Պ/Ա': DECLARANT_TYPE.partyLeader };
+
+/**
+ * Անձանց տույժերի պատմություն (DEC-R3, DEC-R4; ԿԿՀ-ի ճշտում 24.11.2026)։ Տույժերի յուրաքանչյուր կապակցվող գրառման համար EPD-ում
+ * փնտրվում է անձի (ՀԾՀ) նույն տարվա և տեսակի հայտարարագիրը (ցանկացած տեսակ՝ տարեկան, ստանձնելու, դադարեցնելու).
+ *   • late՝ հրապարակվել է տույժից (ՎԻՎ Ա ամսաթվից) հետո (DEC-R3)
+ *   • unsubmitted՝ չի հրապարակվել կամ EPD-ում չկա (DEC-R4)
+ *   • before՝ հրապարակվել է մինչև տույժը (իրադարձություն չէ)
+ * @returns Map<ՀԾՀ, [{ kind, year, type, record, decl, publishedOn }]>՝ ըստ տարվա և ՎԻՎ Ա ամսաթվի
+ */
+export function penaltyHistory(records) {
+  const byKey = new Map();
+  for (const d of current('de_declaration')) {
+    const ssn = declarationSsn(d);
+    if (!ssn) continue;
+    const k = penaltyKey(ssn, d.year, d.declarationtype);
+    byKey.set(k, [...(byKey.get(k) || []), d]);
+  }
+  const hist = new Map();
+  for (const r of records || []) {
+    if (!isLinkable(r)) continue;
+    const all = byKey.get(penaltyKey(r.ssn, r.year, r.declarationType)) || [];
+    const role = PENALTY_DECLARANT[r.declarantType];
+    const byRole = all.filter((d) => d.declaranttype === role);
+    const cands = byRole.length ? byRole : all;
+    const pub = cands.filter(isPublished).sort((a, b) => (a.publishedon || '').localeCompare(b.publishedon || ''))[0];
+    const publishedOn = pub?.publishedon ? pub.publishedon.slice(0, 10) : null;
+    const kind = !pub ? 'unsubmitted' : publishedOn > r.vivDate ? 'late' : 'before';
+    if (!hist.has(r.ssn)) hist.set(r.ssn, []);
+    hist.get(r.ssn).push({ kind, year: r.year, type: r.declarationType, record: r, decl: pub || cands[0] || null, publishedOn });
+  }
+  for (const list of hist.values()) list.sort((a, b) => a.year - b.year || a.record.vivDate.localeCompare(b.record.vivDate));
+  return hist;
+}
+
+/**
+ * Տույժի գրառման ստուգում EPD-ով՝ մուտքագրման և ներմուծման ժամանակ (նախազգուշացում, ոչ արգելք).
+ *   • not_found՝ EPD-ում այս ՀԾՀ-ի, տարվա և տեսակի հայտարարագիր չկա (հավանական սխալ. տույժը կհամարվի չներկայացում, DEC-R4)
+ *   • before՝ հայտարարագիրը հրապարակվել է մինչև տույժը (ուշացում չի համարվի, DEC-R3 չի աշխատի)
+ * @returns { warning: 'not_found'|'before'|null, decl, publishedOn } կամ null, եթե գրառումը չի կապակցվում (ՀԾՀ, տարի, տեսակ, ամսաթիվ)
+ */
+export function checkPenaltyRecord(rec) {
+  const e = penaltyHistory([rec]).get(rec.ssn)?.[0];
+  if (!e) return null;
+  return { warning: e.kind === 'before' ? 'before' : e.kind === 'unsubmitted' && !e.decl ? 'not_found' : null, decl: e.decl, publishedOn: e.publishedOn };
 }
 
 function evaluateDeclarations(state, rules) {
   const formulas = effectiveFormulas(state);
   const units = [];
-  // Տույժերի ֆայլ (COM-11). տույժը հայտարարագրի հետ կապվում է ՀԾՀ + տարի + տեսակ (DEC-R3, DEC-R4)
+  const maxManual = manualMaxWeight(state);
+  /** Հաշվարկում աշխատած կանոնների քաշերի գումար (տեղեկատվական) */
+  const scopeScore = (sc) => Object.values(sc.results).filter((r) => r.status === STATUS.fired).reduce((t, r) => t + (Number(r.weight) || 0), 0);
+  // Տույժեր (COM-11, մոդուլում վարվող տվյալներ). տարեկան հայտարարագրի վրա կիրառվում են անձի այդ և նախորդ բոլոր տարիների
+  // տույժերը՝ ցանկացած տեսակի հայտարարագրի համար (DEC-R3, DEC-R4)
   const penaltiesLoaded = Array.isArray(state.penalties?.records);
-  const penIndex = indexPenalties(state.penalties?.records);
-  const penaltiesFor = (ssn, year, type) => (ssn ? penIndex.get(penaltyKey(ssn, year, type)) || [] : []);
-  const checkFor = (d) => ({ loaded: penaltiesLoaded, decl: d, status: isPublished(d) ? 'published' : 'not_published', records: penaltiesFor(d.ssn, d.year, d.declarationtype) });
+  const history = penaltyHistory(state.penalties?.records);
+  const checkFor = (d, ssn = declarationSsn(d), year = d.year) => {
+    const events = (ssn && history.get(ssn) || []).filter((e) => e.year <= year);
+    return {
+      loaded: penaltiesLoaded, decl: d, year, ssn, status: !d ? 'missing' : isPublished(d) ? 'published' : 'not_published',
+      events, late: events.filter((e) => e.kind === 'late'), unsubmitted: events.filter((e) => e.kind === 'unsubmitted'), records: events.map((e) => e.record),
+    };
+  };
   const allDecls = current('de_declaration').filter((d) => d.declarationtype === DECLARATION_TYPE.yearly);
 
   // Գնահատման միավոր՝ պաշտոնատար անձի (և կուսակցության ղեկավարի) հրապարակված տարեկան հայտարարագիրը. ընտանիքի անդամների հայտարարագրերը կապվում են parentdeclaration-ով (DEC-05)
@@ -337,28 +426,25 @@ function evaluateDeclarations(state, rules) {
     const base = { id: d.instanceid, code: d.code, decl: d, profile: byInstance('de_profile', d.originaldeclarant), year: d.year };
     const refDate = `${d.year}-12-31`;
     const threshold = variableValue(state.variables || {}, 'dec_threshold', refDate);
-    const maxManual = variableValue(state.variables || {}, 'manual_max_weight', refDate) ?? 25;
-    const manual = manualFor(state, 'declarations', d.instanceid).map((m) => ({ ...m, weight: Math.min(Number(m.weight) || 0, maxManual) }));
-    const manualWeight = manual.reduce((s, m) => s + m.weight, 0);
+    const manual = manualFor(state, 'declarations', d.instanceid);
+    const manualFlag = mergedManual(manual, maxManual);
 
     const run = (corrections) => {
       const built = buildDeclarationScopes(d, corrections, checkFor, formulas);
       const ext = new ExternalContext({ direction: 'declarations', unit: d.code });
-      const hasFamily = built.scopes.some((x) => x.kind === 'family');
+      const mortgageKeywords = variableValue(state.variables || {}, 'mortgage_keywords', refDate) || [];
       for (const s of built.scopes) {
+        s.mortgageKeywords = mortgageKeywords; // DEC-R5. հիփոթեքային վարկերի ճանաչում
         s.results = runRules(rules, s, { direction: 'declarations', level: 'scope', state, refDate, ext });
-        s.manualWeight = manualWeightFor(manual, s, s === built.scopes[0], hasFamily);
-        s.score = Object.values(s.results).filter((r) => r.status === STATUS.fired).reduce((a, r) => a + (Number(r.weight) || 0), 0) + s.manualWeight;
-        s.risky = threshold !== null && s.score >= threshold;
+        s.score = scopeScore(s); // տեղեկատվական. շեմի հետ համեմատվում է համախառն միավորը
       }
-      return built;
+      return { ...built, ...combinedScore(built.scopes, manualFlag) };
     };
     const ids = new Set([d.instanceid, ...current('de_declaration').filter((x) => x.parentdeclaration === d.instanceid).map((x) => x.instanceid)]);
     const myCorrections = Object.fromEntries(Object.entries(state.corrections || {}).filter(([, c]) => ids.has(c._declaration)));
     const cur = run(state.corrections || {});
     const original = Object.keys(myCorrections).length ? run({}) : null;
-    const score = Math.max(...cur.scopes.map((s) => s.score));
-    units.push({ ...base, ...cur, original, corrections: myCorrections, threshold, manual, manualWeight, score, risky: cur.scopes.some((s) => s.risky) });
+    units.push({ ...base, ...cur, original, corrections: myCorrections, threshold, manual, manualFlag, risky: threshold !== null && cur.score >= threshold });
   }
 
   // Ներկայացված (հրապարակված) չլինող հայտարարագրեր և տույժերի ֆայլում առկա, բայց EPD-ում բացակայող հայտարարագրեր.
@@ -367,28 +453,27 @@ function evaluateDeclarations(state, rules) {
   const statusUnit = ({ id, code, decl, profile, year, declarationType, label, check }) => {
     const refDate = `${year}-12-31`;
     const threshold = variableValue(state.variables || {}, 'dec_threshold', refDate);
-    const maxManual = variableValue(state.variables || {}, 'manual_max_weight', refDate) ?? 25;
-    const manual = manualFor(state, 'declarations', id).map((m) => ({ ...m, weight: Math.min(Number(m.weight) || 0, maxManual) }));
-    const manualWeight = manual.reduce((a, m) => a + m.weight, 0);
+    const manual = manualFor(state, 'declarations', id);
+    const manualFlag = mergedManual(manual, maxManual);
     const scope = { key: `ind:${id}`, kind: 'individual', statusOnly: true, label, year, decls: decl ? [decl] : [], persons: 1, profiles: [], exp: null, table: () => [], penaltyCheck: check };
     scope.results = runRules(penaltyRules, scope, { direction: 'declarations', level: 'scope', state, refDate, ext: new ExternalContext({ direction: 'declarations', unit: code }) });
-    scope.manualWeight = manualWeight;
-    scope.score = Object.values(scope.results).filter((r) => r.status === STATUS.fired).reduce((a, r) => a + (Number(r.weight) || 0), 0) + manualWeight;
-    scope.risky = threshold !== null && scope.score >= threshold;
-    return { id, code, decl, profile, year, declarationType, statusOnly: true, missing: !decl, penalties: check.records, scopes: [scope], linked: [], fam: [], original: null, corrections: {}, threshold, manual, manualWeight, score: scope.score, risky: scope.risky };
+    scope.score = scopeScore(scope);
+    const { score, indicators } = combinedScore([scope], manualFlag);
+    return { id, code, decl, profile, year, declarationType, statusOnly: true, missing: !decl, penalties: check.yearRecords || check.records, scopes: [scope], linked: [], fam: [], original: null, corrections: {}, threshold, manual, manualFlag, score, indicators, risky: threshold !== null && score >= threshold };
   };
   for (const d of allDecls.filter((x) => !isPublished(x))) {
     const profile = byInstance('de_profile', d.originaldeclarant);
     units.push(statusUnit({ id: d.instanceid, code: d.code, decl: d, profile, year: d.year, declarationType: d.declarationtype, label: `${profileName(d.originaldeclarant)} (${lk('c_declaranttype', d.declaranttype)}, ${lk('c_wfstate', d.wfstateid)})`, check: checkFor(d) }));
   }
-  const inEpd = new Set(allDecls.filter((d) => d.ssn).map((d) => penaltyKey(d.ssn, d.year, d.declarationtype)));
-  for (const [key, records] of penIndex) {
+  // Տարեկան հայտարարագրի տույժ, որի հայտարարագիրը EPD-ում չկա ոչ մի կարգավիճակով՝ «Հայտարարագիր չկա» տող
+  const inEpd = new Set(allDecls.map((d) => declarationSsn(d) && penaltyKey(declarationSsn(d), d.year, d.declarationtype)).filter(Boolean));
+  for (const [key, records] of indexPenalties(state.penalties?.records)) {
     if (inEpd.has(key) || records[0].declarationType !== DECLARATION_TYPE.yearly) continue;
     const r = records[0];
     const live = liveProfileBySsn(r.ssn);
     const profile = live ? { ...live } : { firstname: r.firstName, lastname: r.lastName, middlename: r.patronymic, ssn: r.ssn };
     const id = `pen-${r.ssn}-${r.year}-${r.declarationType}`;
-    units.push(statusUnit({ id, code: `ՎԻՎ Ա ${r.vivNumber || '—'}`, decl: null, profile, year: r.year, declarationType: r.declarationType, label: `${profile.firstname} ${profile.lastname} (հայտարարագիր չկա, տույժ)`, check: { loaded: true, decl: null, status: 'missing', records } }));
+    units.push(statusUnit({ id, code: `ՎԻՎ Ա ${r.vivNumber || '—'}`, decl: null, profile, year: r.year, declarationType: r.declarationType, label: `${profile.firstname} ${profile.lastname} (հայտարարագիր չկա, տույժ)`, check: { ...checkFor(null, r.ssn, r.year), yearRecords: records } }));
   }
   return units;
 }

@@ -45,17 +45,17 @@ function company(c) {
 
 export const companies = [
   company({ tin: '02598765', cid: 50211, type: 'ՍՊԸ', name: 'Բիլդ Գրուպ', reg: '286.110.01234', registered: '2015-04-14', capital: 5000000, industry: '41.20', address: 'Երևան, Արշակունյաց 2',
-    owners: [{ psn: '3006830442', first: 'Հայկ', last: 'Խաչատրյան', patronymic: 'Վահանի', share: 60, joined: '2015-04-14', founder: true }, { psn: '1109790221', first: 'Արտյոմ', last: 'Սահակյան', share: 40, joined: '2015-04-14', founder: true }],
-    exec: { psn: '1109790221', first: 'Արտյոմ', last: 'Սահակյան' } }),
+    owners: [{ psn: '0000102221', first: 'Հայկ', last: 'Խաչատրյան', patronymic: 'Վահանի', share: 60, joined: '2015-04-14', founder: true }, { psn: '0000100778', first: 'Արտյոմ', last: 'Սահակյան', share: 40, joined: '2015-04-14', founder: true }],
+    exec: { psn: '0000100778', first: 'Արտյոմ', last: 'Սահակյան' } }),
   company({ tin: '01566778', cid: 40118, type: 'ՓԲԸ', name: 'ԱրմՏեխ', reg: '264.120.04567', registered: '2009-09-09', capital: 20000000, industry: '46.51',
     owners: [{ entity: 'ԱրմՏեխ Հոլդինգ ՍՊԸ', entityTin: '01577889', share: 100, joined: '2009-09-09', founder: true }],
-    exec: { psn: '2202750333', first: 'Նարեկ', last: 'Ավագյան' } }),
+    exec: { psn: '0000101703', first: 'Նարեկ', last: 'Ավագյան' } }),
   company({ tin: '00812345', cid: 30777, type: 'ՍՊԸ', name: 'Լյուքս Թայմ', reg: '273.110.07788', registered: '2012-02-20', capital: 1000000, industry: '47.77',
-    owners: [{ psn: '1501700119', first: 'Գրիգոր', last: 'Աղաջանյան', share: 100, joined: '2012-02-20', founder: true }],
-    exec: { psn: '1501700119', first: 'Գրիգոր', last: 'Աղաջանյան' } }),
+    owners: [{ psn: '0000101111', first: 'Գրիգոր', last: 'Աղաջանյան', share: 100, joined: '2012-02-20', founder: true }],
+    exec: { psn: '0000101111', first: 'Գրիգոր', last: 'Աղաջանյան' } }),
   company({ tin: '02512345', cid: 60321, type: 'ՍՊԸ', name: 'Ալֆա Կոնսալտ', reg: '290.110.09911', registered: '2018-06-01', capital: 500000, industry: '70.22',
-    owners: [{ psn: '3105780123', first: 'Արսեն', last: 'Մարտիրոսյան', patronymic: 'Հակոբի', share: 100, joined: '2018-06-01', founder: true }],
-    exec: { psn: '3105780123', first: 'Արսեն', last: 'Մարտիրոսյան' } }),
+    owners: [{ psn: '0000102295', first: 'Արսեն', last: 'Մարտիրոսյան', patronymic: 'Հակոբի', share: 100, joined: '2018-06-01', founder: true }],
+    exec: { psn: '0000102295', first: 'Արսեն', last: 'Մարտիրոսյան' } }),
 ];
 
 export function companyInfo(req) {

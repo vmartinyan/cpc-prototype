@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Box, Button, TextField, MenuItem, Stack, Typography, Chip, Alert, IconButton, Tooltip } from '@mui/material';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { useStore, can, newId, ROLES } from '../engine/store.js';
-import { variableValue } from '../engine/variables.js';
+import { manualMaxWeight } from '../engine/evaluator.js';
 import { Section, navigate } from './common.jsx';
 import { STATUS } from '../rules/common.js';
 
@@ -56,31 +56,24 @@ export function ConclusionBox({ direction, unitId }) {
 export const conclusionLabel = (state, direction, unitId) => { const st = normStatus(state.conclusions[`${direction}:${unitId}`]?.status); return st ? CONCLUSION_STATUS[st] : ''; };
 
 /**
- * Ձեռքով ռիսկային նշում (COM-20; հայտարարագրերում՝ DEC-R7)։ Հայտարարագրի դեպքում նշվում է, թե որ հաշվարկի համար է՝
- * հայտարարատուի առանձին (individual) կամ ընտանիքի ընդհանուր կազմի (family). ընտանիքի անդամների առանձին հաշվարկներին
- * չի վերաբերում։ Մեկ նշում յուրաքանչյուր տարբերակի համար. scopes՝ [{ value, label }]
+ * Ձեռքով ռիսկային նշում (COM-20; հայտարարագրերում՝ DEC-R7)։ Հայտարարագրի դեպքում՝ մեկ նշում հայտարարագրի համար, քաշով
+ * (մինչև DEC-R7-ի առավելագույն քաշը՝ «Կանոններ → Քաշերի բաշխում»). քաշը մեկ անգամ գումարվում է համախառն միավորին (DEC-04, Գ2)
  */
-export function ManualFlagBox({ direction, unitId, refDate, scopes }) {
+export function ManualFlagBox({ direction, unitId }) {
   const { state, update } = useStore();
   const flags = state.manualFlags.filter((f) => f.direction === direction && f.unitId === unitId);
-  const maxW = variableValue(state.variables, 'manual_max_weight', refDate) ?? 25;
+  const maxW = manualMaxWeight(state);
   const isDecl = direction === 'declarations';
-  const options = isDecl ? (scopes?.length ? scopes : [{ value: 'individual', label: 'Հայտարարատու (առանձին)' }]) : [];
-  const scopeOf = (f) => (f.scope === 'family' ? 'family' : 'individual');
-  const free = options.filter((o) => !flags.some((f) => scopeOf(f) === o.value));
   const [note, setNote] = useState('');
   const [weight, setWeight] = useState(maxW);
-  const [scope, setScope] = useState('');
   const allowed = can(state.role, 'manual_flag');
-  const curScope = free.some((o) => o.value === scope) ? scope : free[0]?.value || '';
-  const canAddMore = !isDecl || free.length > 0;
+  const canAddMore = !isDecl || !flags.length;
   const canAdd = allowed && note.trim() && canAddMore;
-  const labelOf = (f) => options.find((o) => o.value === scopeOf(f))?.label || options[0]?.label;
   return (
     <Section title={isDecl ? 'Ձեռքով ռիսկային նշում (DEC-R7)' : 'Ձեռքով ռիսկային նշում (COM-20)'}>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
         {isDecl
-          ? `Նշման քաշը (մինչև ${maxW}) գումարվում է ընտրված հաշվարկի համախառն միավորին՝ հայտարարատուի առանձին${options.length > 1 ? ' կամ ընտանիքի ընդհանուր կազմով' : ''} (չափորոշիչ 7)։ Ընտանիքի անդամների առանձին հաշվարկներին չի գումարվում։ Մեկ նշում յուրաքանչյուր հաշվարկի համար։`
+          ? `Նշման քաշը (մինչև ${maxW}) գումարվում է հայտարարագրի համախառն միավորին (չափորոշիչ 7, DEC-04)։ Մեկ նշում հայտարարագրի համար։`
           : 'Առանց քաշի. փաստաթուղթը դառնում է ռիսկային։'}
         {direction === 'integrity' && ' Հարցաթերթիկի վրա ձեռքով նշման թույլատրելիությունը ճշտվում է (Q-38)։'}
       </Typography>
@@ -88,22 +81,17 @@ export function ManualFlagBox({ direction, unitId, refDate, scopes }) {
         <Alert key={f.id} severity="warning" sx={{ mb: 1 }} action={allowed && (
           <Tooltip title="Հեռացնել"><IconButton size="small" onClick={() => update((s) => ({ manualFlags: s.manualFlags.filter((x) => x.id !== f.id) }))}><DeleteOutlineIcon fontSize="small" /></IconButton></Tooltip>
         )}>
-          {isDecl && <Chip size="small" label={`քաշ ${Math.min(f.weight, maxW)}`} sx={{ mr: 1 }} />}
-          {isDecl && <Typography variant="caption" sx={{ display: 'block', fontWeight: 600 }}>{labelOf(f)}</Typography>}
+          {isDecl && <Chip size="small" label={`քաշ ${Math.min(Number(f.weight) || 0, maxW)}`} sx={{ mr: 1 }} />}
           {f.note} <Typography component="span" variant="caption" color="text.secondary">({new Date(f.at).toLocaleDateString('hy-AM')})</Typography>
         </Alert>
       ))}
+      {isDecl && flags.length > 1 && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>Նախկինում դրված մի քանի նշում. հաշվարկում կիրառվում է ամենամեծ քաշը (մեկ անգամ)։</Typography>}
       {allowed && canAddMore && (
         <Stack spacing={1.5}>
-          {isDecl && options.length > 1 && (
-            <TextField select size="small" label="Հաշվարկ" value={curScope} onChange={(e) => setScope(e.target.value)}>
-              {options.map((o) => <MenuItem key={o.value} value={o.value} disabled={!free.some((x) => x.value === o.value)}>{o.label}</MenuItem>)}
-            </TextField>
-          )}
           <TextField size="small" label="Հիմնավորում" multiline minRows={2} value={note} onChange={(e) => setNote(e.target.value)} />
           {isDecl && <TextField size="small" type="number" label={`Քաշ (0–${maxW})`} value={weight} onChange={(e) => setWeight(Math.max(0, Math.min(maxW, Number(e.target.value))))} slotProps={{ htmlInput: { min: 0, max: maxW } }} sx={{ width: 140 }} />}
           <Button variant="outlined" color="warning" sx={{ alignSelf: 'flex-start' }} disabled={!canAdd} onClick={() => {
-            update((s) => ({ manualFlags: [...s.manualFlags, { id: newId('MF'), direction, unitId, ...(isDecl ? { scope: curScope } : {}), weight: isDecl ? weight : null, note: note.trim(), by: s.role, at: new Date().toISOString() }] }));
+            update((s) => ({ manualFlags: [...s.manualFlags, { id: newId('MF'), direction, unitId, weight: isDecl ? Math.min(weight, maxW) : null, note: note.trim(), by: s.role, at: new Date().toISOString() }] }));
             setNote('');
           }}>Ավելացնել նշում</Button>
         </Stack>

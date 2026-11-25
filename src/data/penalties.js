@@ -119,17 +119,24 @@ export function indexPenalties(records) {
 /**
  * Ցուցադրական տույժեր (հորինված տվյալներ՝ mock EPD-ի անձանց համար). իրական տվյալները մուտքագրվում կամ ներմուծվում են «Արտաքին ֆայլեր → Տույժեր» էջում։
  * Դեպքեր. ուշացումով ներկայացում (DEC-R3), սևագիր (DEC-R4), հայտարարագիր չկա (DEC-R4), ներկայացված տույժից առաջ,
+ * ստանձնելու հայտարարագրի ուշացում և չներկայացում (կիրառվում են տարեկանների վրա), ընտանիքի անդամի ուշացում,
  * կապակցման համար անբավարար գրառումներ։
  */
 const demo = (o) => ({ vivNumber: '', patronymic: '', declarantType: 'Պ/Ա', position: '', declarationKind: 'Տարեկան', basis: '169.28/5', specialist: 'Ցուցադրական', act: '', decisionUrl: '', decisionDate: null, ...o });
 const DEMO_ROWS = [
-  demo({ vivNumber: '41/25', vivDate: '2025-04-15', firstName: 'ՎԱՀԵ', lastName: 'ՂԱԶԱՐՅԱՆ', patronymic: 'ՄՈՒՇԵՂԻ', ssn: '3001720556', position: 'Արտաշատ համայնքի ղեկավար', year: 2024, act: '200․000', decisionDate: '2025-04-30' }),
-  demo({ vivNumber: '57/26', vivDate: '2026-05-12', firstName: 'ՎԱՀԵ', lastName: 'ՂԱԶԱՐՅԱՆ', patronymic: 'ՄՈՒՇԵՂԻ', ssn: '3001720556', position: 'Արտաշատ համայնքի ղեկավար', year: 2025 }),
-  demo({ vivNumber: '61/26', vivDate: '2026-05-20', firstName: 'ՍԱՄՎԵԼ', lastName: 'ԹՈՐՈՍՅԱՆ', patronymic: 'ԼՅՈՎԱՅԻ', ssn: '2603690617', position: 'Արտաշատ համայնքի ղեկավարի տեղակալ', year: 2025, act: '200․000', decisionDate: '2026-06-02' }),
-  demo({ vivNumber: '62/26', vivDate: '2026-05-20', firstName: 'ԿԱՐԻՆԵ', lastName: 'ՄԱՆԱՍՅԱՆ', patronymic: 'ԱՐՏԱԿԻ', ssn: '0101900111', declarantType: 'Ը/Ա', position: 'Արտաշատ համայնքի ղեկավարի տեղակալ', year: 2025 }),
-  demo({ vivNumber: '48/26', vivDate: '2026-04-10', firstName: 'ԴԱՎԻԹ', lastName: 'ԳՐԻԳՈՐՅԱՆ', patronymic: 'ԱՇՈՏԻ', ssn: '0804770163', position: 'Վարչության պետ', year: 2025, act: 'դեպք չկա', basis: '169.28/1' }),
+  demo({ vivNumber: '41/25', vivDate: '2025-04-15', firstName: 'ՎԱՀԵ', lastName: 'ՂԱԶԱՐՅԱՆ', patronymic: 'ՄՈՒՇԵՂԻ', ssn: '0000102184', position: 'Արտաշատ համայնքի ղեկավար', year: 2024, act: '200․000', decisionDate: '2025-04-30' }),
+  demo({ vivNumber: '57/26', vivDate: '2026-05-12', firstName: 'ՎԱՀԵ', lastName: 'ՂԱԶԱՐՅԱՆ', patronymic: 'ՄՈՒՇԵՂԻ', ssn: '0000102184', position: 'Արտաշատ համայնքի ղեկավար', year: 2025 }),
+  demo({ vivNumber: '61/26', vivDate: '2026-05-20', firstName: 'ՍԱՄՎԵԼ', lastName: 'ԹՈՐՈՍՅԱՆ', patronymic: 'ԼՅՈՎԱՅԻ', ssn: '0000101962', position: 'Արտաշատ համայնքի ղեկավարի տեղակալ', year: 2025, act: '200․000', decisionDate: '2026-06-02' }),
+  demo({ vivNumber: '62/26', vivDate: '2026-05-20', firstName: 'ԿԱՐԻՆԵ', lastName: 'ՄԱՆԱՍՅԱՆ', patronymic: 'ԱՐՏԱԿԻ', ssn: '0000100001', declarantType: 'Ը/Ա', position: 'Արտաշատ համայնքի ղեկավարի տեղակալ', year: 2025 }),
+  demo({ vivNumber: '48/26', vivDate: '2026-04-10', firstName: 'ԴԱՎԻԹ', lastName: 'ԳՐԻԳՈՐՅԱՆ', patronymic: 'ԱՇՈՏԻ', ssn: '0000100445', position: 'Վարչության պետ', year: 2025, act: 'դեպք չկա', basis: '169.28/1' }),
+  // ստանձնելու հայտարարագիր՝ հրապարակվել է տույժից հետո (DEC-R3՝ 2021-ից սկսած բոլոր տարեկան հայտարարագրերում)
+  demo({ vivNumber: '33/21', vivDate: '2021-08-20', firstName: 'ՆԱՐԻՆԵ', lastName: 'ԱՎԵՏԻՍՅԱՆ', patronymic: 'ՀՐԱՉՅԱՅԻ', ssn: '0000101148', position: 'Վարչության պետի տեղակալ', year: 2021, declarationKind: 'Ստանձնելու', basis: '169.28/2' }),
+  // ստանձնելու հայտարարագիր՝ EPD-ում չկա (DEC-R4՝ 2022-ից սկսած բոլոր տարեկան հայտարարագրերում)
+  demo({ vivNumber: '12/22', vivDate: '2022-04-05', firstName: 'ՏԻԳՐԱՆ', lastName: 'ՄԿՐՏՉՅԱՆ', patronymic: 'ՍԱՄՎԵԼԻ', ssn: '0000100112', position: 'Կոմիտեի նախագահ', year: 2022, declarationKind: 'Ստանձնելու', basis: '169.28/2' }),
+  // ընտանիքի անդամի (ամուսնու) տարեկան հայտարարագիր՝ հրապարակվել է տույժից հետո (DEC-R3 նրա առանձին հաշվարկում)
+  demo({ vivNumber: '29/25', vivDate: '2025-03-20', firstName: 'ՄԱՐԻՆԵ', lastName: 'ՄԿՐՏՉՅԱՆ', patronymic: 'ՎԱԶԳԵՆԻ', ssn: '0000101666', declarantType: 'Ը/Ա', position: 'Կոմիտեի նախագահ', year: 2024 }),
   demo({ vivNumber: '70/26', vivDate: '2026-06-03', firstName: 'ԱՐՄԵՆ', lastName: 'ԱՌԱՔԵԼՅԱՆ', ssn: '', year: null, declarationKind: '', basis: '189.13/2' }),
-  demo({ vivNumber: '71/26', vivDate: '2026-06-05', firstName: 'ՆԱՐԻՆԵ', lastName: 'ԱՎԵՏԻՍՅԱՆ', patronymic: 'ՀՐԱՉՅԱՅԻ', ssn: '1501870928', year: null, declarationKind: '', basis: '169.31/1' }),
+  demo({ vivNumber: '71/26', vivDate: '2026-06-05', firstName: 'ՆԱՐԻՆԵ', lastName: 'ԱՎԵՏԻՍՅԱՆ', patronymic: 'ՀՐԱՉՅԱՅԻ', ssn: '0000101148', year: null, declarationKind: '', basis: '169.31/1' }),
 ];
 export function demoPenalties() {
   return DEMO_ROWS.map((o, i) => finalizeRecord({ id: `PN-DEMO-${i + 1}`, row: i + 2, source: 'Ցուցադրական տվյալներ', ...o }));
@@ -146,7 +153,7 @@ export const TEMPLATE_COLUMNS = [
   { header: 'Անուն', width: 14, required: false, desc: 'Անձի անուն', example: 'ՎԱՀԵ' },
   { header: 'Ազգանուն', width: 16, required: false, desc: 'Անձի ազգանուն', example: 'ՂԱԶԱՐՅԱՆ' },
   { header: 'Հայրանուն', width: 14, required: false, desc: 'Անձի հայրանուն', example: 'ՄՈՒՇԵՂԻ' },
-  { header: 'ՀԾՀ', width: 13, style: 'text', required: true, desc: 'Հանրային ծառայությունների համարանիշ՝ 10 նիշ. առանց ՀԾՀ-ի տույժը հայտարարագրին չի կապակցվում', example: '3001720556' },
+  { header: 'ՀԾՀ', width: 13, style: 'text', required: true, desc: 'Հանրային ծառայությունների համարանիշ՝ 10 նիշ. առանց ՀԾՀ-ի տույժը հայտարարագրին չի կապակցվում', example: '0000102184' },
   { header: 'Հայտարարատուի տեսակ', width: 14, list: ['Պ/Ա', 'Ը/Ա', 'Կ Պ/Ա'], required: false, desc: 'Պ/Ա՝ պաշտոնատար անձ, Ը/Ա՝ ընտանիքի անդամ, Կ Պ/Ա', example: 'Պ/Ա' },
   { header: 'Պ/Ա- պաշտոնը, Ը/Ա-ի դեպքում՝ Պ/Ա-ի պաշտոնը', width: 36, style: 'wrap', required: false, desc: 'Պաշտոն (ընտանիքի անդամի դեպքում՝ պաշտոնատար անձի պաշտոնը)', example: 'Համայնքի ղեկավար' },
   { header: 'Տարի', width: 8, required: true, desc: 'Հայտարարագրի տարի (4 նիշ)', example: '2024' },

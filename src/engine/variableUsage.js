@@ -5,6 +5,7 @@
  */
 import { BUILTIN_RULES } from '../rules/catalog.js';
 import { ENGINE_USAGE } from './variables.js';
+import { effectiveFormulas } from './annualExpense.js';
 
 export function variableImpact(state, key) {
   const re = new RegExp(`\\bvar\\.${key}\\b`);
@@ -23,4 +24,19 @@ export function variableImpact(state, key) {
   }
   for (const d of state?.derivedVars || []) if (re.test(d.expression || '')) out.set(`doc.${d.key}`, d.direction);
   return [...out].map(([id, direction]) => ({ id, direction }));
+}
+
+/**
+ * Փաստաթղթի (doc.) կամ արտաքին (ext.) փոփոխականի օգտագործում տվյալ ուղղությունում (Փոփոխականների էջ, տեղեկատվական).
+ * նախասահմանված կանոններ (կառուցիչով փոխված պայման կամ համարժեք builderExpression), մասնագետի կանոններ,
+ * բարդ փոփոխականներ և ընթացիկ ծախսի հաշվարկի բանաձևեր
+ */
+export function refUsage(state, ns, key, direction) {
+  const re = new RegExp(`\\b${ns}\\.${key}\\b`);
+  const out = new Set();
+  for (const r of BUILTIN_RULES) if (r.direction === direction && re.test(state?.ruleConfig?.[r.id]?.expression || r.builderExpression || '')) out.add(r.id);
+  for (const c of state?.customRules || []) if (c.kind !== 'copy' && c.direction === direction && re.test(c.expression || '')) out.add(c.id);
+  if (direction === 'declarations') for (const [k, expr] of Object.entries(effectiveFormulas(state || {}))) if (k !== key && re.test(expr)) out.add(`doc.${k}`);
+  for (const d of state?.derivedVars || []) if (d.direction === direction && re.test(d.expression || '')) out.add(`doc.${d.key}`);
+  return [...out];
 }

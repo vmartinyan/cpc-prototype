@@ -11,10 +11,11 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { useStore, can } from '../engine/store.js';
 import { DIRECTIONS } from '../rules/common.js';
 import { MANUAL_RULES, notImplementedRules, builtinById } from '../rules/catalog.js';
-import { allVariableDefs, variableAppliesTo, variableDefOf, variableValue } from '../engine/variables.js';
+import { allVariableDefs, variableAppliesTo, variableDefOf } from '../engine/variables.js';
 import { METRICS, BUILDER_EXAMPLES, resolveTable, tableLabel } from '../engine/metrics.js';
 import { parse, dependencies } from '../engine/expression.js';
-import { evaluateAll, builtinExpressionFor } from '../engine/evaluator.js';
+import { evaluateAll, builtinExpressionFor, declarationWeightTotal, manualMaxWeight, WEIGHT_TOTAL } from '../engine/evaluator.js';
+import WeightsDialog, { weightRows, applyWeights } from '../components/WeightsDialog.jsx';
 import { SERVICES } from '../adapters/transport.js';
 import { PageHeader, Section, SimpleTable, InfoNote, navigate } from '../components/common.jsx';
 import ExpressionEditor from '../components/ExpressionEditor.jsx';
@@ -91,28 +92,66 @@ function RuleList({ dir }) {
   const editable = can(state.role, 'edit_rules');
   const stats = useMemo(() => ruleStats(results), [results]);
   const rules = results.rules.filter((r) => r.direction === dir);
-  const maxManual = variableValue(state.variables || {}, 'manual_max_weight', new Date().toISOString().slice(0, 10)) ?? 25;
+  const maxManual = manualMaxWeight(state);
+  const isDecl = dir === 'declarations';
+  const total = isDecl ? declarationWeightTotal(state, results.rules) : null;
+  // քաշերի բաշխման պատուհան. { rows, intro, change: (s) => patch } (change՝ պահպանվող գործողությունը, քաշերի հետ միասին)
+  const [wd, setWd] = useState(null);
 
-  /** COM-06. պատրաստի կանոնի կրկնօրինակ՝ այլ պարամետրերով (օր.՝ այլ շեմով) */
-  const copy = (r) => {
-    const n = state.customRules.filter((c) => c.base === r.id).length + 1;
-    update((s) => ({ customRules: [...s.customRules, { id: `${r.id}-K${n}`, kind: 'copy', base: r.id, title: `${r.title} (կրկնօրինակ ${n})`, enabled: true, params: {} }] }));
-  };
-  const setCfg = (id, patch) => update((s) => {
+  const cfgPatch = (s, id, patch) => {
     const custom = s.customRules.find((c) => c.id === id);
     if (custom) return { customRules: s.customRules.map((c) => (c.id === id ? { ...c, ...patch } : c)) };
     return { ruleConfig: { ...s.ruleConfig, [id]: { ...(s.ruleConfig[id] || {}), ...patch } } };
+  };
+  /**
+   * Հայտարարագրերում գումարը փոխող գործողություն. եթե գումարը մնում է 100 (օր.՝ 0 քաշով կանոն), պահպանվում է անմիջապես,
+   * հակառակ դեպքում բացվում է քաշերի բաշխման պատուհանը
+   */
+  const act = ({ change, delta = 0, always = false, intro, rowsOpt }) => {
+    if (!isDecl || (!always && delta === 0 && total === WEIGHT_TOTAL)) { update(change); return; }
+    setWd({ rows: weightRows(results.rules, rowsOpt), intro, change });
+  };
+  /** COM-06. պատրաստի կանոնի կրկնօրինակ՝ այլ պարամետրերով (օր.՝ այլ շեմով) */
+  const copy = (r) => {
+    const n = state.customRules.filter((c) => c.base === r.id).length + 1;
+    const entry = { id: `${r.id}-K${n}`, kind: 'copy', base: r.id, title: `${r.title} (կրկնօրինակ ${n})`, enabled: true, params: {}, ...(isDecl ? { weight: 0 } : {}) };
+    act({ always: true, change: (s) => ({ customRules: [...s.customRules, entry] }), intro: `Կրկնօրինակ՝ ${entry.id}. նշեք դրա քաշը և վերաբաշխեք մյուսները։`, rowsOpt: { extra: [{ id: entry.id, title: entry.title, weight: 0, isNew: true }] } });
+  };
+  const toggle = (r, enabled) => act({
+    change: (s) => cfgPatch(s, r.id, { enabled }), delta: Number(r.weight) || 0,
+    intro: enabled ? `${r.id}-ի միացում. նրա քաշը (${r.weight ?? 0}) ավելանում է գումարին։` : `${r.id}-ի անջատում. նրա քաշը (${r.weight ?? 0}) դուրս է գալիս գումարից։`,
+    rowsOpt: enabled ? { include: [r.id] } : { exclude: [r.id] },
   });
+  const remove = (r) => act({
+    change: (s) => ({ customRules: s.customRules.filter((c) => c.id !== r.id) }), delta: r.enabled ? Number(r.weight) || 0 : 0,
+    intro: `${r.id}-ի ջնջում. նրա քաշը (${r.weight ?? 0}) դուրս է գալիս գումարից։`, rowsOpt: { exclude: [r.id] },
+  });
+  const saveWeights = (weights, manual) => {
+    const change = wd.change;
+    update((s) => {
+      const p = change ? change(s) : {};
+      return { ...p, ...applyWeights({ ...s, ...p }, weights, manual) };
+    });
+    setWd(null);
+  };
 
   return (
     <>
-      {editable && (
-        <Stack direction="row" sx={{ mb: 2 }}>
-          <Button startIcon={<AddIcon />} variant="contained" onClick={() => navigate(`/rules/new/${dir}`)}>Նոր կանոն</Button>
+      {isDecl && total !== WEIGHT_TOTAL && (
+        <Alert severity="warning" sx={{ mb: 2 }} action={editable && <Button color="inherit" size="small" onClick={() => setWd({ rows: weightRows(results.rules) })}>Վերաբաշխել</Button>}>
+          Միացված կանոնների քաշերի գումարը՝ DEC-R7-ի առավելագույն քաշով, {total} է, պետք է լինի {WEIGHT_TOTAL}։
+        </Alert>
+      )}
+      {(editable || isDecl) && (
+        <Stack direction="row" spacing={1} sx={{ mb: 2, alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+          {editable && <Button startIcon={<AddIcon />} variant="contained" onClick={() => navigate(`/rules/new/${dir}`)}>Նոր կանոն</Button>}
+          {isDecl && editable && <Button variant="outlined" onClick={() => setWd({ rows: weightRows(results.rules) })}>Քաշերի բաշխում</Button>}
+          {isDecl && <Chip variant="outlined" color={total === WEIGHT_TOTAL ? 'success' : 'warning'} label={`Քաշերի գումար՝ ${total} / ${WEIGHT_TOTAL}`} />}
         </Stack>
       )}
+      {wd && <WeightsDialog state={state} rows={wd.rows} intro={wd.intro} onClose={() => setWd(null)} onSave={saveWeights} />}
       {!rules.length && <Typography color="text.secondary" sx={{ mb: 2 }}>Այս ուղղության համար իրականացված կանոններ չկան։</Typography>}
-      {!editable && <InfoNote>Կանոնները փոփոխում է կանոնների պատասխանատուն (NFR-02)։ Ընտրեք համապատասխան դերը վերևի ցանկից։</InfoNote>}
+      {!editable && <InfoNote>Կանոնները փոփոխում է կանոնների պատասխանատուն (NFR-02)։ Նախատիպում մուտք գործեք կանոնների պատասխանատուի դերով օգտատիրոջով (Ելք → Մուտք ԵՍ ԵՄ-ով)։</InfoNote>}
       {rules.map((r) => {
         const st = stats[r.id] || {};
         return (
@@ -141,11 +180,11 @@ function RuleList({ dir }) {
                 </Typography>
               </Box>
               <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start' }}>
-                {r.direction === 'declarations' && <Tooltip title="Քաշը փոխվում է խմբագրման ժամանակ"><Chip variant="outlined" color={r.weight ? 'default' : 'warning'} label={`Քաշ ${r.weight ?? 0}`} sx={{ mt: 0.5, fontWeight: 600 }} /></Tooltip>}
+                {r.direction === 'declarations' && <Tooltip title={r.enabled ? 'Քաշը փոխվում է «Քաշերի բաշխում» պատուհանում' : 'Անջատված է. քաշը գումարում չի մտնում'}><Chip variant="outlined" color={r.weight ? 'default' : 'warning'} label={`Քաշ ${r.weight ?? 0}`} sx={{ mt: 0.5, fontWeight: 600 }} /></Tooltip>}
                 {editable && <Tooltip title="Խմբագրել"><IconButton onClick={() => navigate(`/rules/edit/${r.id}`)}><EditOutlinedIcon /></IconButton></Tooltip>}
                 {editable && r.kind === 'builtin' && (r.params || []).length > 0 && <Tooltip title="Կրկնօրինակել (COM-06). պատճենը կարելի է կարգավորել այլ պարամետրերով"><IconButton onClick={() => copy(r)}><ContentCopyIcon /></IconButton></Tooltip>}
-                {editable && r.kind !== 'builtin' && !r.override && <Tooltip title="Ջնջել"><IconButton onClick={() => update((s) => ({ customRules: s.customRules.filter((c) => c.id !== r.id) }))}><DeleteOutlineIcon /></IconButton></Tooltip>}
-                <Tooltip title={r.enabled ? 'Միացված' : 'Անջատված'}><Switch checked={r.enabled} disabled={!editable} onChange={(e) => setCfg(r.id, { enabled: e.target.checked })} /></Tooltip>
+                {editable && r.kind !== 'builtin' && !r.override && <Tooltip title="Ջնջել"><IconButton onClick={() => remove(r)}><DeleteOutlineIcon /></IconButton></Tooltip>}
+                <Tooltip title={r.enabled ? 'Միացված' : 'Անջատված'}><Switch checked={r.enabled} disabled={!editable} onChange={(e) => toggle(r, e.target.checked)} /></Tooltip>
               </Stack>
             </Stack>
           </Paper>
@@ -158,10 +197,10 @@ function RuleList({ dir }) {
               <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
                 <Typography sx={{ fontWeight: 700 }}>{r.id}</Typography><Typography sx={{ fontWeight: 600 }}>{r.title}</Typography><Chip size="small" color="secondary" variant="outlined" label="ձեռքով" />
               </Stack>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{r.criterion}. Առավելագույն քաշը՝ «Փոփոխականներ» էջում։</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{r.criterion}. Քաշը (0-ից մինչև առավելագույնը) նշում է մասնագետը. այն մեկ անգամ գումարվում է համախառն միավորին։</Typography>
               <Typography variant="caption" color="text.secondary">Աղբյուր՝ {r.srsRef}</Typography>
             </Box>
-            <Tooltip title="Առավելագույն քաշ. փոխվում է «Փոփոխականներ» էջում"><Chip variant="outlined" label={`Քաշ ≤ ${maxManual}`} sx={{ mt: 0.5, fontWeight: 600, alignSelf: 'flex-start' }} /></Tooltip>
+            <Tooltip title="Առավելագույն քաշ. փոխվում է «Քաշերի բաշխում» պատուհանում"><Chip variant="outlined" label={`Քաշ ≤ ${maxManual}`} sx={{ mt: 0.5, fontWeight: 600, alignSelf: 'flex-start' }} /></Tooltip>
           </Stack>
         </Paper>
       ))}
@@ -227,7 +266,7 @@ function RuleEditor({ ruleId: editId, newDirection = 'declarations' }) {
   const [form, setForm] = useState(() => {
     if (kind === 'builtin' || kind === 'copy') return { id: eff.id, direction: eff.direction, level: eff.level || 'person', title: eff.title || '', description: eff.criterion || '', weight: eff.weight ?? 0, enabled: eff.enabled, expression: eff.override ? eff.expression : initialExpression(builtin, eff) };
     if (kind === 'expression') return { ...custom, description: custom.description || '', enabled: custom.enabled ?? true };
-    return { id: '', direction: newDirection, level: 'person', title: '', description: '', expression: '', weight: 10, enabled: true };
+    return { id: '', direction: newDirection, level: 'person', title: '', description: '', expression: '', weight: 0, enabled: true };
   });
   // պարամետրերի կապերը. նախասահմանված կանոնի դեպքում՝ նաև կառուցիչով փոխարինված պայմանի ժամանակ (պահպանվում են ruleConfig-ում)
   const [vals, setVals] = useState(() => (builtin ? { ...Object.fromEntries((builtin.params || []).map((p) => [p.key, p.default])), ...(kind === 'builtin' ? state.ruleConfig[editId]?.params : custom.params) } : {}));
@@ -240,6 +279,7 @@ function RuleEditor({ ruleId: editId, newDirection = 'declarations' }) {
   const [derivedEdit, setDerivedEdit] = useState(null); // { initial } | null
   const [confirmReset, setConfirmReset] = useState(false);
   const [test, setTest] = useState(null);
+  const [wd, setWd] = useState(null); // քաշերի բաշխում (հայտարարագրեր). { rows, intro }
   const editable = can(state.role, 'edit_rules');
   const M = METRICS[form.direction];
   const level = form.direction === 'parties' ? form.level : null;
@@ -293,9 +333,27 @@ function RuleEditor({ ruleId: editId, newDirection = 'declarations' }) {
     return { customRules: kind === 'expression' ? s.customRules.map((c) => (c.id === editId ? exprEntry() : c)) : [...s.customRules, exprEntry()] };
   };
   const runTest = () => { const R = evaluateAll({ ...state, ...patchState(state) }); setTest(collectResults(R, form.direction, ruleId)); };
-  const save = () => { update(patchState); navigate(`/rules/${form.direction}`); };
+  /**
+   * Հայտարարագրերում նոր կանոնը և միացման/անջատման փոփոխությունը պահպանվում են քաշերի բաշխման պատուհանով
+   * (միացված կանոնների քաշերի և DEC-R7-ի գումարը = 100)
+   */
+  const enabledBefore = kind === 'new' ? false : !!eff?.enabled;
+  const save = () => {
+    if (isDecl && (kind === 'new' ? form.enabled : !!form.enabled !== enabledBefore)) {
+      const rowsOpt = !form.enabled ? { exclude: [ruleId] } : kind === 'new' ? { extra: [{ id: ruleId, title: form.title.trim(), weight: 0, isNew: true }] } : { include: [ruleId] };
+      setWd({ rows: weightRows(results.rules, rowsOpt), intro: kind === 'new' ? `Նոր կանոն՝ ${ruleId}. նշեք դրա քաշը և վերաբաշխեք մյուսները։` : form.enabled ? `${ruleId}-ի միացում. նրա քաշը ավելանում է գումարին։` : `${ruleId}-ի անջատում. նրա քաշը դուրս է գալիս գումարից։` });
+      return;
+    }
+    update(patchState);
+    navigate(`/rules/${form.direction}`);
+  };
+  const saveWithWeights = (weights, manual) => {
+    update((s) => { const p = patchState(s); return { ...p, ...applyWeights({ ...s, ...p }, weights, manual) }; });
+    navigate(`/rules/${form.direction}`);
+  };
   const resetAll = () => {
-    update((s) => { const { [ruleId]: _, ...rest } = s.ruleConfig; return { ruleConfig: rest }; });
+    // քաշը և միացված լինելը պահպանվում են (քաշերի գումարը չի խախտվում)
+    update((s) => { const { [ruleId]: cur, ...rest } = s.ruleConfig; const keep = Object.fromEntries(Object.entries(cur || {}).filter(([k]) => k === 'weight' || k === 'enabled')); return { ruleConfig: Object.keys(keep).length ? { ...rest, [ruleId]: keep } : rest }; });
     navigate(`/rules/${form.direction}`);
   };
   const saveDerived = (d) => {
@@ -333,7 +391,7 @@ function RuleEditor({ ruleId: editId, newDirection = 'declarations' }) {
                 {Object.entries(METRICS.parties.levels).map(([k, l]) => <MenuItem key={k} value={k}>{l}</MenuItem>)}
               </TextField>
             )}
-            {isDecl && <TextField size="small" type="number" label="Քաշ" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} sx={{ width: 100 }} />}
+            {isDecl && <Tooltip title={kind === 'new' ? 'Նոր կանոնի քաշը նշվում է պահպանելիս («Քաշերի բաշխում»)' : 'Քաշը փոխվում է «Կանոններ → Քաշերի բաշխում» պատուհանում (գումարը՝ 100)'}><Chip variant="outlined" label={`Քաշ ${kind === 'new' ? '—' : form.weight}`} sx={{ fontWeight: 600 }} /></Tooltip>}
             <FormControlLabel control={<Switch checked={!!form.enabled} onChange={(e) => setForm({ ...form, enabled: e.target.checked })} />} label={form.enabled ? 'Միացված' : 'Անջատված'} />
           </Stack>
           <TextField size="small" label="Անվանում" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
@@ -446,9 +504,10 @@ function RuleEditor({ ruleId: editId, newDirection = 'declarations' }) {
         <DerivedVarDialog open initial={derivedEdit.initial} direction={form.direction} level={level} state={state}
           usedBy={derivedEdit.initial ? derivedUsage(state, derivedEdit.initial) : []} onClose={() => setDerivedEdit(null)} onSave={saveDerived} />
       )}
+      {wd && <WeightsDialog state={state} rows={wd.rows} intro={wd.intro} onClose={() => setWd(null)} onSave={saveWithWeights} />}
       <Dialog open={confirmReset} onClose={() => setConfirmReset(false)}>
         <DialogTitle>Վերականգնել սկզբնականը</DialogTitle>
-        <DialogContent><Typography>{ruleId}-ի անվանումը, չափորոշիչը, քաշը, պարամետրերը և պայմանը կվերադառնան սկզբնական արժեքներին։ Շարունակե՞լ։</Typography></DialogContent>
+        <DialogContent><Typography>{ruleId}-ի անվանումը, չափորոշիչը, պարամետրերը և պայմանը կվերադառնան սկզբնական արժեքներին (քաշը և միացված լինելը չեն փոխվում)։ Շարունակե՞լ։</Typography></DialogContent>
         <DialogActions><Button onClick={() => setConfirmReset(false)}>Ոչ</Button><Button color="warning" variant="contained" onClick={resetAll}>Այո</Button></DialogActions>
       </Dialog>
     </Box>

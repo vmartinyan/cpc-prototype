@@ -14,27 +14,27 @@ export const KEYS = { person: {}, declaration: {}, gift: {}, report: {}, party: 
 // ───────────────────────────── անձինք (կենդանի պրոֆիլներ, iscloned = 2)
 // positiontype, institution՝ c_positiontype, c_institution իրական id-ներ
 const PEOPLE = {
-  'PR-101': { firstname: 'Արմեն', lastname: 'Հովհաննիսյան', middlename: 'Գագիկի', ssn: '2507750412', dateofbirth: '1975-07-25', gender: 1, positiontype: 8, institution: 30, positionatwork: 'Նախարարի տեղակալ' },
-  'PR-102': { firstname: 'Լիլիթ', lastname: 'Հովհաննիսյան', middlename: 'Արտաշեսի', ssn: '1403790526', dateofbirth: '1979-03-14', gender: 2 },
-  'PR-103': { firstname: 'Արման', lastname: 'Հովհաննիսյան', middlename: 'Արմենի', ssn: '0911110311', dateofbirth: '2011-11-09', gender: 1 },
-  'PR-104': { firstname: 'Գայանե', lastname: 'Սարգսյան', middlename: 'Ռուբենի', ssn: '1802680734', dateofbirth: '1968-02-18', gender: 2, positiontype: 3, institution: 149, positionatwork: 'Դատավոր' },
-  'PR-105': { firstname: 'Տիգրան', lastname: 'Մկրտչյան', middlename: 'Սամվելի', ssn: '0306800215', dateofbirth: '1980-06-03', gender: 1, positiontype: 2, institution: 43, positionatwork: 'Կոմիտեի նախագահ' },
-  'PR-106': { firstname: 'Մարինե', lastname: 'Մկրտչյան', middlename: 'Վազգենի', ssn: '2110820647', dateofbirth: '1982-10-21', gender: 2 },
-  'PR-107': { firstname: 'Նարինե', lastname: 'Ավետիսյան', middlename: 'Հրաչյայի', ssn: '1501870928', dateofbirth: '1987-01-15', gender: 2, positiontype: 9, institution: 40, positionatwork: 'Վարչության պետի տեղակալ' },
-  'PR-108': { firstname: 'Դավիթ', lastname: 'Գրիգորյան', middlename: 'Աշոտի', ssn: '0804770163', dateofbirth: '1977-04-08', gender: 1, positiontype: 9, institution: 12, positionatwork: 'Վարչության պետ' },
-  'PR-109': { firstname: 'Սուրեն', lastname: 'Վարդանյան', middlename: 'Կարենի', ssn: '2209830385', dateofbirth: '1983-09-22', gender: 1, positiontype: 9, institution: 52, positionatwork: 'Վարչության պետ' },
-  'PR-110': { firstname: 'Անի', lastname: 'Խաչատրյան', middlename: 'Մհերի', ssn: '1712850894', dateofbirth: '1985-12-17', gender: 2, positiontype: 9, institution: 32, positionatwork: 'Վարչության պետ' },
-  'PR-111': { firstname: 'Վահե', lastname: 'Ղազարյան', middlename: 'Մուշեղի', ssn: '3001720556', dateofbirth: '1972-01-30', gender: 1, positiontype: 4, institution: 67, positionatwork: 'Համայնքի ղեկավար' },
-  'PR-112': { firstname: 'Լևոն', lastname: 'Բաբայան', middlename: 'Էդուարդի', ssn: '1105760279', dateofbirth: '1976-05-11', gender: 1, positiontype: 8, institution: 12, positionatwork: 'Նախարարի տեղակալ' },
-  'PR-113': { firstname: 'Մարիամ', lastname: 'Գևորգյան', middlename: 'Արայի', ssn: '0702890441', dateofbirth: '1989-02-07', gender: 2, positiontype: 9, institution: 40, positionatwork: 'Վարչության պետ' },
-  'PR-114': { firstname: 'Սամվել', lastname: 'Թորոսյան', middlename: 'Լյովայի', ssn: '2603690617', dateofbirth: '1969-03-26', gender: 1, positiontype: 4, institution: 67, positionatwork: 'Համայնքի ղեկավարի տեղակալ' },
-  'PR-115': { firstname: 'Ռուզաննա', lastname: 'Պողոսյան', middlename: 'Արթուրի', ssn: '1909910732', dateofbirth: '1991-09-19', gender: 2 },
-  'PR-116': { firstname: 'Գևորգ', lastname: 'Աբրահամյան', middlename: 'Վաչեի', ssn: '0412840198', dateofbirth: '1984-12-04', gender: 1 },
-  'PR-117': { firstname: 'Էդգար', lastname: 'Սիմոնյան', middlename: 'Գրիգորի', ssn: '2808790863', dateofbirth: '1979-08-28', gender: 1 },
-  'PR-118': { firstname: 'Լուսինե', lastname: 'Կարապետյան', middlename: 'Նորայրի', ssn: '1610930254', dateofbirth: '1993-10-16', gender: 2 },
-  'PR-119': { firstname: 'Անահիտ', lastname: 'Սիմոնյան', middlename: 'Հակոբի', ssn: '0505810577', dateofbirth: '1981-05-05', gender: 2 },
-  'PR-120': { firstname: 'Արսեն', lastname: 'Դանիելյան', middlename: 'Ռաֆայելի', ssn: '1904860312', dateofbirth: '1986-04-19', gender: 1, positiontype: 9, institution: 40, positionatwork: 'Վարչության պետի տեղակալ' },
-  'PR-121': { firstname: 'Սոնա', lastname: 'Դանիելյան', middlename: 'Կարոյի', ssn: '0702880425', dateofbirth: '1988-02-07', gender: 2, positiontype: 9, institution: 12, positionatwork: 'Վարչության պետ' },
+  'PR-101': { firstname: 'Արմեն', lastname: 'Հովհաննիսյան', middlename: 'Գագիկի', ssn: '0000101925', dateofbirth: '1975-07-25', gender: 1, positiontype: 8, institution: 30, positionatwork: 'Նախարարի տեղակալ' },
+  'PR-102': { firstname: 'Լիլիթ', lastname: 'Հովհաննիսյան', middlename: 'Արտաշեսի', ssn: '0000100963', dateofbirth: '1979-03-14', gender: 2 },
+  'PR-103': { firstname: 'Արման', lastname: 'Հովհաննիսյան', middlename: 'Արմենի', ssn: '0000100593', dateofbirth: '2011-11-09', gender: 1 },
+  'PR-104': { firstname: 'Գայանե', lastname: 'Սարգսյան', middlename: 'Ռուբենի', ssn: '0000101370', dateofbirth: '1968-02-18', gender: 2, positiontype: 3, institution: 149, positionatwork: 'Դատավոր' },
+  'PR-105': { firstname: 'Տիգրան', lastname: 'Մկրտչյան', middlename: 'Սամվելի', ssn: '0000100112', dateofbirth: '1980-06-03', gender: 1, positiontype: 2, institution: 43, positionatwork: 'Կոմիտեի նախագահ' },
+  'PR-106': { firstname: 'Մարինե', lastname: 'Մկրտչյան', middlename: 'Վազգենի', ssn: '0000101666', dateofbirth: '1982-10-21', gender: 2 },
+  'PR-107': { firstname: 'Նարինե', lastname: 'Ավետիսյան', middlename: 'Հրաչյայի', ssn: '0000101148', dateofbirth: '1987-01-15', gender: 2, positiontype: 9, institution: 40, positionatwork: 'Վարչության պետի տեղակալ' },
+  'PR-108': { firstname: 'Դավիթ', lastname: 'Գրիգորյան', middlename: 'Աշոտի', ssn: '0000100445', dateofbirth: '1977-04-08', gender: 1, positiontype: 9, institution: 12, positionatwork: 'Վարչության պետ' },
+  'PR-109': { firstname: 'Սուրեն', lastname: 'Վարդանյան', middlename: 'Կարենի', ssn: '0000101777', dateofbirth: '1983-09-22', gender: 1, positiontype: 9, institution: 52, positionatwork: 'Վարչության պետ' },
+  'PR-110': { firstname: 'Անի', lastname: 'Խաչատրյան', middlename: 'Մհերի', ssn: '0000101333', dateofbirth: '1985-12-17', gender: 2, positiontype: 9, institution: 32, positionatwork: 'Վարչության պետ' },
+  'PR-111': { firstname: 'Վահե', lastname: 'Ղազարյան', middlename: 'Մուշեղի', ssn: '0000102184', dateofbirth: '1972-01-30', gender: 1, positiontype: 4, institution: 67, positionatwork: 'Համայնքի ղեկավար' },
+  'PR-112': { firstname: 'Լևոն', lastname: 'Բաբայան', middlename: 'Էդուարդի', ssn: '0000100704', dateofbirth: '1976-05-11', gender: 1, positiontype: 8, institution: 12, positionatwork: 'Նախարարի տեղակալ' },
+  'PR-113': { firstname: 'Մարիամ', lastname: 'Գևորգյան', middlename: 'Արայի', ssn: '0000100371', dateofbirth: '1989-02-07', gender: 2, positiontype: 9, institution: 40, positionatwork: 'Վարչության պետ' },
+  'PR-114': { firstname: 'Սամվել', lastname: 'Թորոսյան', middlename: 'Լյովայի', ssn: '0000101962', dateofbirth: '1969-03-26', gender: 1, positiontype: 4, institution: 67, positionatwork: 'Համայնքի ղեկավարի տեղակալ' },
+  'PR-115': { firstname: 'Ռուզաննա', lastname: 'Պողոսյան', middlename: 'Արթուրի', ssn: '0000101555', dateofbirth: '1991-09-19', gender: 2 },
+  'PR-116': { firstname: 'Գևորգ', lastname: 'Աբրահամյան', middlename: 'Վաչեի', ssn: '0000100186', dateofbirth: '1984-12-04', gender: 1 },
+  'PR-117': { firstname: 'Էդգար', lastname: 'Սիմոնյան', middlename: 'Գրիգորի', ssn: '0000102147', dateofbirth: '1979-08-28', gender: 1 },
+  'PR-118': { firstname: 'Լուսինե', lastname: 'Կարապետյան', middlename: 'Նորայրի', ssn: '0000101259', dateofbirth: '1993-10-16', gender: 2 },
+  'PR-119': { firstname: 'Անահիտ', lastname: 'Սիմոնյան', middlename: 'Հակոբի', ssn: '0000100260', dateofbirth: '1981-05-05', gender: 2 },
+  'PR-120': { firstname: 'Արսեն', lastname: 'Դանիելյան', middlename: 'Ռաֆայելի', ssn: '0000101444', dateofbirth: '1986-04-19', gender: 1, positiontype: 9, institution: 40, positionatwork: 'Վարչության պետի տեղակալ' },
+  'PR-121': { firstname: 'Սոնա', lastname: 'Դանիելյան', middlename: 'Կարոյի', ssn: '0000100334', dateofbirth: '1988-02-07', gender: 2, positiontype: 9, institution: 12, positionatwork: 'Վարչության պետ' },
 };
 
 const profileFields = (p) => ({
@@ -152,8 +152,10 @@ const SPECS = [
     remaining: [{ type: 1, lender: 'Արդշինբանկ', balance: 29500000, mortgage: true, subject: 'Բնակարան', address: 'Երևան, Դավիթաշեն 4-րդ թաղ., շ. 12, բն. 40' }],
     realestate: [{ tab: 2, type: 7, area: 110, code: '01-010-0321-0040', dealdate: '2025-06-12', deal: 45000000, method: 3, counterpart: '«Դավիթաշեն Դեվելոփմենթ» ՍՊԸ', filling: 2, status: 1 }],
   },
+  // DEC-R6՝ ընտանիքի կանխիկ. Տիգրանի (2.5/3 մլն) և Մարինեի (3.95/4 մլն) կանխիկը առանձին չի գերազանցում 5 մլն շեմը, իսկ միասին՝
+  // 6.45 մլն տարեսկզբին և 7 մլն տարեվերջին, որը 3 անգամ և ավելի գերազանցում է ընտանիքի անկանխիկ միջոցները (1.5/2 մլն)
   { code: 'D-106-2024', person: 'PR-106', parent: 'D-105-2024', year: 2024, status: 'published', submittedon: '2025-03-28',
-    cash: [{ start: 150000, end: 200000, origin: 4 }], incomes: [{ type: 1, payer: 'Դպրոց N 45', amount: 2900000, filling: 2, status: 1 }] },
+    cash: [{ start: 3950000, end: 4000000, origin: 4 }], incomes: [{ type: 1, payer: 'Դպրոց N 45', amount: 2900000, filling: 2, status: 1 }] },
   { code: 'D-106-2025', person: 'PR-106', parent: 'D-105-2025', year: 2025, status: 'published', submittedon: '2026-03-30',
     cash: [{ start: 200000, end: 300000, origin: 4 }], incomes: [{ type: 1, payer: 'Դպրոց N 45', amount: 3000000, filling: 2, status: 1 }] },
 
@@ -182,9 +184,12 @@ const SPECS = [
   // Դավիթ Գրիգորյան (PR-108). տեխնիկական վրիպում (25 000 000՝ 2 500 000-ի փոխարեն), DEC-10
   { code: 'D-108-2024', person: 'PR-108', year: 2024, status: 'published', submittedon: '2025-03-26', position: 'Վարչության պետ', institution: 12, positiontype: 9, assumptiondate: '2019-01-15',
     positions: [{ institution: 12, position: 'Վարչության պետ', assumptiondate: '2019-01-15' }],
-    // DEC-R5. տարվա ընթացքում վերցրել է 1.2 մլն սպառողական վարկ, թեև տարեսկզբին ուներ 1.5 մլն կանխիկ
-    cash: [{ start: 1500000, end: 2000000, origin: 4 }], incomes: [{ type: 1, payer: 'ՀՀ առողջապահության նախարարություն', tin: '02500055', amount: 8100000, filling: 2, status: 1 }, { type: 13, payer: 'Ինեկոբանկ ՓԲԸ', amount: 1200000 }],
-    remaining: [{ type: 1, lender: 'Ինեկոբանկ ՓԲԸ', balance: 950000, mortgage: false, purpose: 'Սպառողական վարկ' }] },
+    // DEC-R5. տարվա ընթացքում վերցրել է 1.2 մլն սպառողական վարկ, թեև տարեսկզբին ուներ 1.5 մլն կանխիկ. 15 մլն հիփոթեքային վարկը
+    // (նկարագրությունում՝ «հիփոթեքային») չի հաշվվում. առանց դրա բացառման վարկերի գումարը (16.2 մլն) կգերազանցեր կանխիկը
+    cash: [{ start: 1500000, end: 2000000, origin: 4 }], incomes: [{ type: 1, payer: 'ՀՀ առողջապահության նախարարություն', tin: '02500055', amount: 8100000, filling: 2, status: 1 }, { type: 13, payer: 'Ինեկոբանկ ՓԲԸ', amount: 1200000 },
+      { type: 13, payer: 'Ամերիաբանկ ՓԲԸ', desc: 'Հիփոթեքային վարկ՝ բնակարանի ձեռքբերման համար', amount: 15000000 }],
+    realestate: [{ tab: 2, type: 7, area: 72, code: '01-002-0145-0031', dealdate: '2024-06-14', method: 1, counterpart: 'Ա. Պետրոսյան', deal: 15000000 }],
+    remaining: [{ type: 1, lender: 'Ինեկոբանկ ՓԲԸ', balance: 950000, mortgage: false, purpose: 'Սպառողական վարկ' }, { type: 1, lender: 'Ամերիաբանկ ՓԲԸ', balance: 14600000, mortgage: true, subject: 'Բնակարան', purpose: 'Բնակարանի ձեռքբերում' }] },
   { code: 'D-108-2025', person: 'PR-108', year: 2025, status: 'published', submittedon: '2026-03-24', position: 'Վարչության պետ', institution: 12, positiontype: 9, assumptiondate: '2019-01-15',
     positions: [{ institution: 12, position: 'Վարչության պետ', assumptiondate: '2019-01-15' }],
     cash: [{ start: 2000000, end: 25000000, origin: 4 }], incomes: [{ type: 1, payer: 'ՀՀ առողջապահության նախարարություն', tin: '02500055', amount: 8400000, filling: 2, status: 1 }] },
@@ -238,14 +243,18 @@ const SPECS = [
   { code: 'D-121-2025', person: 'PR-121', year: 2025, status: 'published', submittedon: '2026-03-18', position: 'Վարչության պետ', institution: 12, positiontype: 9, assumptiondate: '2021-09-01',
     positions: [{ institution: 12, position: 'Վարչության պետ', assumptiondate: '2021-09-01' }], family: [{ member: 'PR-120', type: FM.spouse }],
     bank: [{ bank: 'Ակբա բանկ', start: 500000, end: 600000, origin: 4 }], incomes: [{ type: 1, payer: 'ՀՀ առողջապահության նախարարություն', tin: '02500055', amount: 4800000, filling: 2, status: 1 }] },
+
+  // Պաշտոնը ստանձնելու հայտարարագիր (declarationtype 2). վերլուծվում չէ, օգտագործվում է միայն տույժերի պատմության համար (DEC-R3)՝
+  // Նարինե Ավետիսյանը 2021-ի ստանձնելու հայտարարագիրը հրապարակել է տույժից (20.08.2021) հետո → DEC-R3 նրա 2024 և 2025 տարեկան հայտարարագրերում
+  { code: 'D-107-2021-Ս', type: 2, person: 'PR-107', year: 2021, date: '2021-06-01', status: 'published', submittedon: '2021-09-10', position: 'Վարչության պետի տեղակալ', institution: 40, positiontype: 9, assumptiondate: '2021-06-01' },
 ];
 
 function addSections(root, owner, spec, ctx, opts = {}) {
   const sec = {};
-  const section = (table, flags) => (sec[table] ||= db.section(table, root, { declarationtype: 1, declaranttype: ctx.declaranttype, ...flags }, opts));
+  const section = (table, flags) => (sec[table] ||= db.section(table, root, { declarationtype: ctx.declarationtype, declaranttype: ctx.declaranttype, ...flags }, opts));
   const base = (r, tab, ownerClone, fmType) => ({
     tabtype: tab, profile: ownerClone.instanceid, familymembertype: fmType ?? null,
-    datafillingoption: r.filling ?? 1, status: r.status ?? null, declarationtype: 1, declaranttype: ctx.declaranttype,
+    datafillingoption: r.filling ?? 1, status: r.status ?? null, declarationtype: ctx.declarationtype, declaranttype: ctx.declaranttype,
   });
   const rd = (r) => r.rateDate || spec.submittedon;
   const add = (o, ownerClone, fmType) => {
@@ -260,7 +269,7 @@ function addSections(root, owner, spec, ctx, opts = {}) {
       ...base(r, 1, ownerClone, fmType), debtorname: r.debtor, ...money('amountatbeginningofyear', r.start, r.cur, rd(r)), ...money('amountatendofyear', r.end, r.cur, rd(r)),
       ...money('amountpaidduringyear', r.paid, r.cur, rd(r)), ...money('amountrepaidduringyear', r.repaid, r.cur, rd(r)) });
     for (const r of o.incomes || []) db.detail('de_revenuesincomes', section('de_revenues', { hasavailableincome: 1 }), {
-      ...base(r, null, ownerClone, fmType), incometype: r.type, incomepayerfullname: r.payer, tin: r.tin ?? null, ...money('amount', r.amount, r.cur, rd(r)) });
+      ...base(r, null, ownerClone, fmType), incometype: r.type, incomepayerfullname: r.payer, description: r.desc ?? null, natureofrelationshipwithpayer: r.rel ?? null, tin: r.tin ?? null, ...money('amount', r.amount, r.cur, rd(r)) });
     for (const r of o.remaining || []) db.detail('de_revenuesremainingprincipals', section('de_revenues', r.type === 1 ? { hasprincipalbalance: 1 } : { hasprincipalbalanceforloan: 1 }), {
       ...base(r, null, ownerClone, fmType), type: r.type, lenderfullname: r.lender, hasmortgage: yn(r.mortgage), subjectofmortgage: r.subject ?? null, mortgageaddress: r.address ?? null,
       creditpurpose: r.type === 1 ? r.purpose ?? null : null, loanpurpose: r.type === 2 ? r.purpose ?? null : null,
@@ -290,14 +299,14 @@ for (const s of SPECS) {
   const declaranttype = parent ? DECLARANT_TYPE.family : DECLARANT_TYPE.officer;
   const owner = cloneProfile(s.person, { family: s.family, relatives: s.relatives, positions: s.positions, otherPositions: s.otherPositions });
   const rootFields = {
-    code: s.code, year: s.year, declarationtype: 1, declaranttype, date: `${s.year}-12-31`, law: 6, declarationkind: declaranttype === 1 ? 3 : 1,
+    code: s.code, year: s.year, declarationtype: s.type ?? 1, declaranttype, date: s.date ?? `${s.year}-12-31`, law: 6, declarationkind: declaranttype === 1 ? 3 : 1,
     declarant: owner.clone.instanceid, originaldeclarant: KEYS.person[s.person].instanceid, ssn: PEOPLE[s.person].ssn,
     parentdeclaration: parent ? parent.instanceid : null, parentoriginaldeclarant: parent ? parent.originaldeclarant : null,
     position: s.position ?? null, institution: s.institution ?? null, positiontype: s.positiontype ?? null,
     positionassumptiondate: s.assumptiondate ?? null, positionterminationdate: s.terminationdate ?? null,
     wfstateid: STATUS_WF[s.status], submittedon: ts(s.submittedon), publishedon: s.status === 'published' ? ts(s.submittedon, '20:00:00') : null,
   };
-  const ctx = { declaranttype };
+  const ctx = { declaranttype, declarationtype: s.type ?? 1 };
   let root;
   if (s.previousVersion) {
     // նախորդ հրապարակված տարբերակը (ուղղումից առաջ). ոչ ընթացիկ տող նույն instanceid-ով
@@ -412,19 +421,19 @@ const don = (fullname, idn, amount, date, currency = 'AMD', extra = {}) => ({ fu
 const REPORTS = [
   {
     code: 'RP-1-2025', party: 'PA-1', year: 2025, submittedon: '2026-03-25', wf: WF.report.published,
-    previousVersion: { submittedon: '2026-03-10', monetary: [don('Արսեն Մարտիրոսյան', '3105780123', 16000000, '2025-03-10')] },
-    monetary: [don('Արսեն Մարտիրոսյան', '3105780123', 6000000, '2025-03-10'), don('Կարինե Դավթյան', '1203850456', 9500000, '2025-05-05'), don('Անի Խաչատրյան', '1712850894', 800000, '2025-11-11'), don('Գոռ Եղիազարյան', '1404760512', 10000, '2025-08-15', 'USD'), don('Վարդան Պետրոսյան', '2701690348', 4000000, '2025-03-30')],
-    membership: [don('Կարինե Դավթյան', '1203850456', 600000, '2025-12-15'), don('Անի Խաչատրյան', '1712850894', 240000, '2025-12-10'), don('Սուրեն Վարդանյան', '2209830385', 120000, '2025-12-10')],
-    nonmonetary: [{ fullname: 'Գոռ Եղիազարյան', identitydocumentnumber: '1404760512', donationtype: 4, donationobject: 'Ավտոմեքենա Toyota Land Cruiser Prado, 2021', amount: 6500000, date: '2025-09-02' }],
+    previousVersion: { submittedon: '2026-03-10', monetary: [don('Արսեն Մարտիրոսյան', '0000102295', 16000000, '2025-03-10')] },
+    monetary: [don('Արսեն Մարտիրոսյան', '0000102295', 6000000, '2025-03-10'), don('Կարինե Դավթյան', '0000100852', 9500000, '2025-05-05'), don('Անի Խաչատրյան', '0000101333', 800000, '2025-11-11'), don('Գոռ Եղիազարյան', '0000101000', 10000, '2025-08-15', 'USD'), don('Վարդան Պետրոսյան', '0000102036', 4000000, '2025-03-30')],
+    membership: [don('Կարինե Դավթյան', '0000100852', 600000, '2025-12-15'), don('Անի Խաչատրյան', '0000101333', 240000, '2025-12-10'), don('Սուրեն Վարդանյան', '0000101777', 120000, '2025-12-10')],
+    nonmonetary: [{ fullname: 'Գոռ Եղիազարյան', identitydocumentnumber: '0000101000', donationtype: 4, donationobject: 'Ավտոմեքենա Toyota Land Cruiser Prado, 2021', amount: 6500000, date: '2025-09-02' }],
     cheap: [{ cadastralnumber: '01-005-0111-0002', realestatetype: 10, cadastralvalue: 48000000, marketvalue: 60000000, amount: 0, nonmonetaryincome: 1200000, rentorusagedurationindays: 365, realestatearea: 120, renterfullname: 'Վարդան Պետրոսյան', fulllocation: 'Երևան, Մաշտոցի 33' }],
     cashflow: { begin: 3500000, expTotal: 25800000, correction: -15000, incomes: [[2, 24682000], [3, 960000]], exp: [[1, 9600000, 0], [10, 14200000, 6500000], [4, 2000000, 1200000]] },
   },
   {
     code: 'RP-2-2025', party: 'PA-2', year: 2025, submittedon: '2026-03-28', wf: WF.report.submitted,
-    monetary: [don('Արսեն Մարտիրոսյան', '3105780123', 5000000, '2025-07-22'), don('Կարեն Մարտիրոսյան', '2208810321', 3000000, '2025-09-09'), don('Վարդան Պետրոսյան', '', 7000000, '2025-10-14'), don('Աննա Ստեփանյան', '1002880235', 500000, '2025-05-19')],
-    membership: [don('Աննա Ստեփանյան', '1002880235', 60000, '2025-12-01'), don('Տարոն Մելիքյան', '1506900183', 60000, '2025-12-03')],
-    entry: [don('Տարոն Մելիքյան', '1506900183', 10000, '2025-02-01')],
-    nonmonetary: [{ fullname: 'Աննա Ստեփանյան', identitydocumentnumber: '1002880235', donationtype: 4, donationobject: 'Տպագրական ծառայություններ', amount: 250000, date: '2025-06-11' }],
+    monetary: [don('Արսեն Մարտիրոսյան', '0000102295', 5000000, '2025-07-22'), don('Կարեն Մարտիրոսյան', '0000101740', 3000000, '2025-09-09'), don('Վարդան Պետրոսյան', '', 7000000, '2025-10-14'), don('Աննա Ստեփանյան', '0000100630', 500000, '2025-05-19')],
+    membership: [don('Աննա Ստեփանյան', '0000100630', 60000, '2025-12-01'), don('Տարոն Մելիքյան', '0000101185', 60000, '2025-12-03')],
+    entry: [don('Տարոն Մելիքյան', '0000101185', 10000, '2025-02-01')],
+    nonmonetary: [{ fullname: 'Աննա Ստեփանյան', identitydocumentnumber: '0000100630', donationtype: 4, donationobject: 'Տպագրական ծառայություններ', amount: 250000, date: '2025-06-11' }],
     prohibited: [{ fullname: '«Ալֆա Կոնսալտ» ՍՊԸ', identitydocumentnumber: '02512345', amount: 2000000, date: '2025-05-02', returnamount_amd: 2000000, returndate: '2025-06-20' }],
     excessive: [{ amount: 2000000 }],
     realestate: [{ counterpartfullname: 'Կարեն Մարտիրոսյան', realestatetype: 10, cadastralprice: 9000000, marketprice: 14000000, dealamount: 9000000, dealdate: '2025-10-01', dealmethod: 3, cadastralnumber: '01-007-0222-0005' }],
@@ -432,9 +441,9 @@ const REPORTS = [
   },
   {
     code: 'RP-3-2025', party: 'PA-3', year: 2025, submittedon: '2026-03-20', wf: WF.report.published,
-    monetary: [don('Հրանտ Սիմոնյան', '0702700789', 10000000, '2025-04-18'), don('Արտակ Բադալյան', '', 2000000, '2025-02-12'), don('Մհեր Զաքարյան', '1908750677', 1200000, '2025-12-02')],
-    membership: [don('Մհեր Զաքարյան', '1908750677', 120000, '2025-11-28'), don('Շուշան Գալստյան', '0310920764', 120000, '2025-11-28')],
-    entry: [don('Շուշան Գալստյան', '0310920764', 10000, '2025-01-15')],
+    monetary: [don('Հրանտ Սիմոնյան', '0000100297', 10000000, '2025-04-18'), don('Արտակ Բադալյան', '', 2000000, '2025-02-12'), don('Մհեր Զաքարյան', '0000101518', 1200000, '2025-12-02')],
+    membership: [don('Մհեր Զաքարյան', '0000101518', 120000, '2025-11-28'), don('Շուշան Գալստյան', '0000100149', 120000, '2025-11-28')],
+    entry: [don('Շուշան Գալստյան', '0000100149', 10000, '2025-01-15')],
     nonmonetary: [{ fullname: 'Արտակ Բադալյան', identitydocumentnumber: '', donationtype: 4, donationobject: 'Գրասենյակային կահույք', amount: 500000, date: '2025-03-20' }],
     freeofcharge: [{ fullname: 'Արտակ Բադալյան', natureofworkservice: 'Գրասենյակի վերանորոգում', amount: 900000, date: '2025-03-15' }],
     cheap: [{ cadastralnumber: '07-012-0045-0001', realestatetype: 10, cadastralvalue: 15000000, marketvalue: 18000000, amount: 200000, nonmonetaryincome: 175000, rentorusagedurationindays: 180, realestatearea: 70, renterfullname: 'Մհեր Զաքարյան', fulllocation: 'Գյումրի, Ռիժկովի 8' }],
@@ -442,15 +451,15 @@ const REPORTS = [
   },
   {
     code: 'RP-4-2025', party: 'PA-4', year: 2025, submittedon: '2026-03-30', wf: WF.report.submitted,
-    monetary: [don('Սոնա Հակոբյան', 'AT0456789', 1500000, '2025-06-30'), don('Լիանա Գասպարյան', '0909990999', 800000, '2025-10-01'), don('Նաիրա Մովսիսյան', '2304820419', 300000, '2025-04-04')],
-    membership: [don('Նաիրա Մովսիսյան', '2304820419', 36000, '2025-12-20'), don('Սոնա Հակոբյան', 'AT0456789', 36000, '2025-12-20')],
-    entry: [don('Նաիրա Մովսիսյան', '2304820419', 5000, '2025-03-01')],
+    monetary: [don('Սոնա Հակոբյան', 'AT0456789', 1500000, '2025-06-30'), don('Լիանա Գասպարյան', '0000100556', 800000, '2025-10-01'), don('Նաիրա Մովսիսյան', '0000101851', 300000, '2025-04-04')],
+    membership: [don('Նաիրա Մովսիսյան', '0000101851', 36000, '2025-12-20'), don('Սոնա Հակոբյան', 'AT0456789', 36000, '2025-12-20')],
+    entry: [don('Նաիրա Մովսիսյան', '0000101851', 5000, '2025-03-01')],
     noncompliant: [{ fullname: 'Անհայտ նվիրատու', identitydocumentnumber: '', amount: 400000, date: '2025-08-08', otherdata: 'Անանուն փոխանցում' }],
     cashflow: { begin: 250000, expTotal: 2900000, correction: 0, incomes: [[2, 2600000], [3, 77000]], exp: [[7, 2900000, 0]] },
   },
   {
     code: 'RP-1-2024', party: 'PA-1', year: 2024, submittedon: '2025-03-24', wf: WF.report.published,
-    monetary: [don('Արսեն Մարտիրոսյան', '3105780123', 4000000, '2024-06-10'), don('Կարինե Դավթյան', '1203850456', 2000000, '2024-09-01')],
+    monetary: [don('Արսեն Մարտիրոսյան', '0000102295', 4000000, '2024-06-10'), don('Կարինե Դավթյան', '0000100852', 2000000, '2024-09-01')],
     cashflow: { begin: 1800000, expTotal: 4800000, correction: 0, incomes: [[2, 6000000]], exp: [[7, 4800000, 0]] },
   },
 ];

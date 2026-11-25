@@ -54,23 +54,23 @@ function vehicle(v) {
 }
 
 const P = {
-  armen: { psn: '2507750412', first: 'ԱՐՄԵՆ', last: 'ՀՈՎՀԱՆՆԻՍՅԱՆ', patronymic: 'ԳԱԳԻԿԻ', birth: '25/07/1975', gender: 'M' },
-  tigran: { psn: '0306800215', first: 'ՏԻԳՐԱՆ', last: 'ՄԿՐՏՉՅԱՆ', patronymic: 'ՍԱՄՎԵԼԻ', birth: '03/06/1980', gender: 'M' },
-  narine: { psn: '1501870928', first: 'ՆԱՐԻՆԵ', last: 'ԱՎԵՏԻՍՅԱՆ', patronymic: 'ՀՐԱՉՅԱՅԻ', birth: '15/01/1987', gender: 'F' },
-  gor: { psn: '1404760512', first: 'ԳՈՌ', last: 'ԵՂԻԱԶԱՐՅԱՆ', patronymic: 'ՄԱՐՏԻՆԻ', birth: '14/04/1976', gender: 'M' },
-  davit: { psn: '0804770163', first: 'ԴԱՎԻԹ', last: 'ԳՐԻԳՈՐՅԱՆ', patronymic: 'ԱՇՈՏԻ', birth: '08/04/1977', gender: 'M' },
+  armen: { psn: '0000101925', first: 'ԱՐՄԵՆ', last: 'ՀՈՎՀԱՆՆԻՍՅԱՆ', patronymic: 'ԳԱԳԻԿԻ', birth: '25/07/1975', gender: 'M' },
+  tigran: { psn: '0000100112', first: 'ՏԻԳՐԱՆ', last: 'ՄԿՐՏՉՅԱՆ', patronymic: 'ՍԱՄՎԵԼԻ', birth: '03/06/1980', gender: 'M' },
+  narine: { psn: '0000101148', first: 'ՆԱՐԻՆԵ', last: 'ԱՎԵՏԻՍՅԱՆ', patronymic: 'ՀՐԱՉՅԱՅԻ', birth: '15/01/1987', gender: 'F' },
+  gor: { psn: '0000101000', first: 'ԳՈՌ', last: 'ԵՂԻԱԶԱՐՅԱՆ', patronymic: 'ՄԱՐՏԻՆԻ', birth: '14/04/1976', gender: 'M' },
+  davit: { psn: '0000100445', first: 'ԴԱՎԻԹ', last: 'ԳՐԻԳՈՐՅԱՆ', patronymic: 'ԱՇՈՏԻ', birth: '08/04/1977', gender: 'M' },
 };
 
 const byPsn = {
-  '2507750412': [vehicle({ owner: P.armen, vin: 'JTNB11HK0J3000123', make: 'TOYOTA', model: 'CAMRY', year: 2018, number: '35 OO 123', reg: 'R000123', joined: '2018-07-12' })],
+  '0000101925': [vehicle({ owner: P.armen, vin: 'JTNB11HK0J3000123', make: 'TOYOTA', model: 'CAMRY', year: 2018, number: '35 OO 123', reg: 'R000123', joined: '2018-07-12' })],
   // Տիգրան Մկրտչյան. հաշվառված BMW X5, որը հայտարարագրում չկա
-  '0306800215': [vehicle({ owner: P.tigran, vin: 'WBACV61010LL00456', make: 'BMW', model: 'X5', year: 2020, body: 'Ամենագնաց', hp: 340, number: '77 XX 777', reg: 'R000456', joined: '2025-08-30', lender: { name: 'Արդշինբանկ', tin: '02520018', amount: 18000000 } })],
-  '1501870928': [
+  '0000100112': [vehicle({ owner: P.tigran, vin: 'WBACV61010LL00456', make: 'BMW', model: 'X5', year: 2020, body: 'Ամենագնաց', hp: 340, number: '77 XX 777', reg: 'R000456', joined: '2025-08-30', lender: { name: 'Արդշինբանկ', tin: '02520018', amount: 18000000 } })],
+  '0000101148': [
     vehicle({ owner: P.narine, vin: 'KNADN512AE6000789', make: 'KIA', model: 'RIO', year: 2014, number: '12 AB 345', reg: 'R000789', joined: '2016-03-01', out: '2025-04-02' }),
     vehicle({ owner: P.narine, vin: 'KMHJ381ABKU000321', make: 'HYUNDAI', model: 'TUCSON', year: 2019, body: 'Ամենագնաց', number: '01 HT 019', reg: 'R000321', joined: '2025-04-20' }),
   ],
-  '1404760512': [vehicle({ owner: P.gor, vin: 'JTEBR3FJ10K000654', make: 'TOYOTA', model: 'LAND CRUISER PRADO', year: 2021, body: 'Ամենագնաց', hp: 280, number: '99 GG 999', reg: 'R000654', joined: '2021-05-05', out: '2025-09-02' })],
-  '0804770163': [],
+  '0000101000': [vehicle({ owner: P.gor, vin: 'JTEBR3FJ10K000654', make: 'TOYOTA', model: 'LAND CRUISER PRADO', year: 2021, body: 'Ամենագնաց', hp: 280, number: '99 GG 999', reg: 'R000654', joined: '2021-05-05', out: '2025-09-02' })],
+  '0000100445': [],
 };
 
 export function getVehicleInfo(req) {

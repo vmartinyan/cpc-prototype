@@ -174,17 +174,18 @@ test('builtin rule overridden by builder expression gives same results as code l
     return s;
   };
   const { demoPenalties } = await import('../src/data/penalties.js');
-  const st = { ...demo, penalties: { records: demoPenalties() } };
+  // լռելյայն անջատված կանոնները (DEC-R6-2՝ պահուստային) միացվում են համեմատության համար
+  const st = { ...demo, penalties: { records: demoPenalties() }, ruleConfig: { ...(demo.ruleConfig || {}), 'DEC-R6-2': { enabled: true } } };
   // տույժերի կանոններ. կոդով «կիրառելի չէ» (թաքցվում է) ≈ արտահայտությամբ «չի աշխատել» (պայմանը՝ doc.is_published == 1/0)
   const norm = (r, list) => (r.penaltyRule ? list.map((x) => (x === 'not_applicable' ? 'not_fired' : x)) : list);
   for (const r of BUILTIN_RULES.filter((x) => x.builderExpression)) {
     const code = collect(evaluateAll(st), r.id);
     // պայմանը գնահատվում է արտահայտությամբ («and 1 == 1»՝ որպեսզի չճանաչվի որպես անփոփոխ և չհաշվարկվի կոդով)
-    const over = evaluateAll({ ...st, ruleConfig: { ...st.ruleConfig, [r.id]: { expression: `(${r.builderExpression}) and 1 == 1` } } });
+    const over = evaluateAll({ ...st, ruleConfig: { ...st.ruleConfig, [r.id]: { ...st.ruleConfig[r.id], expression: `(${r.builderExpression}) and 1 == 1` } } });
     assert.equal(over.rules.find((x) => x.id === r.id).kind, 'expression', r.id);
     assert.deepEqual(norm(r, collect(over, r.id)), norm(r, code), r.id);
     // անփոփոխ պայմանով պահպանված կանոնը հաշվարկվում է կոդով. նույն արդյունք (ներառյալ «կիրառելի չէ») և բացատրություն
-    const same = evaluateAll({ ...st, ruleConfig: { ...st.ruleConfig, [r.id]: { expression: r.builderExpression } } });
+    const same = evaluateAll({ ...st, ruleConfig: { ...st.ruleConfig, [r.id]: { ...st.ruleConfig[r.id], expression: r.builderExpression } } });
     const sr = same.rules.find((x) => x.id === r.id);
     assert.ok(sr.override && sr.kind === 'builtin', r.id);
     assert.deepEqual(collect(same, r.id), code, r.id);
@@ -232,23 +233,23 @@ test('DEC-R2: ՔԿԱԳ spouse + children (roles, divorce, reporting date)', asyn
   const ext = { get: (fn, ...a) => adapters[fn](...a), snap: () => {} };
   const fam = (ssn, year) => civilKinship({ declaranttype: 1, ssn, year, declarant: null }, ext);
   // կին հայտարարատու (person2-ն ինքն է). ամուսինը person-ն է, երեխան՝ ծննդյան ակտից
-  const lilit = fam('1403790526', 2025);
+  const lilit = fam('0000100963', 2025);
   assert.equal(lilit.spouses[0].firstName, 'Արմեն');
   assert.equal(lilit.children.length, 1);
   assert.equal(lilit.civil.family, 2);
   // Գևորգ. ամուսնություն 2011, երեխա 2013, ամուսնալուծություն 2018
-  const g2025 = fam('0412840198', 2025);
+  const g2025 = fam('0000100186', 2025);
   assert.deepEqual([g2025.spouses.length, g2025.formerSpouses.length, g2025.children.length], [0, 1, 1]);
-  const g2015 = fam('0412840198', 2015); // ամուսնալուծությունը դեռ չի եղել
+  const g2015 = fam('0000100186', 2015); // ամուսնալուծությունը դեռ չի եղել
   assert.deepEqual([g2015.spouses.length, g2015.children.length], [1, 1]);
-  const g2012 = fam('0412840198', 2012); // երեխան դեռ չի ծնվել
+  const g2012 = fam('0000100186', 2012); // երեխան դեռ չի ծնվել
   assert.deepEqual([g2012.spouses.length, g2012.children.length], [1, 0]);
   // եղբայրներ/քույրեր՝ ծնողների ակտերով, խնամիներ՝ ամուսնու ծննդյան ակտով
-  const suren = fam('2209830385', 2025);
+  const suren = fam('0000101777', 2025);
   assert.deepEqual(suren.siblings.map((x) => x.firstName), ['Արթուր']);
   assert.deepEqual(suren.inlaws.map((x) => x.firstName).sort(), ['Գուրգեն', 'Սիրանուշ']);
-  assert.equal(fam('1501870928', 2025).civil.siblings, 1); // Նարինե. քույր Մարինա
-  assert.equal(fam('1501870928', 1989).civil.siblings, 0); // քույրը ծնվել է 1990-ին
+  assert.equal(fam('0000101148', 2025).civil.siblings, 1); // Նարինե. քույր Մարինա
+  assert.equal(fam('0000101148', 1989).civil.siblings, 0); // քույրը ծնվել է 1990-ին
 });
 
 test('DEC-R2: deceased relatives are excluded as of the submission date', async () => {
@@ -257,7 +258,7 @@ test('DEC-R2: deceased relatives are excluded as of the submission date', async 
   const { setOutages } = await import('../src/adapters/transport.js');
   setOutages({});
   const ext = { get: (fn, ...a) => adapters[fn](...a), snap: () => {} };
-  const armen = (year, publishedon) => civilKinship({ declaranttype: 1, ssn: '2507750412', year, publishedon, declarant: null }, ext);
+  const armen = (year, publishedon) => civilKinship({ declaranttype: 1, ssn: '0000101925', year, publishedon, declarant: null }, ext);
   // հայրը մահացել է 11.03.2019 (ՔԿԱԳ-ի մահվան ակտ)
   const after = armen(2025, '2026-03-16T09:30:00');
   assert.deepEqual([after.parents.length, after.deceased.parents.length], [1, 1]);
@@ -266,7 +267,7 @@ test('DEC-R2: deceased relatives are excluded as of the submission date', async 
   const before = armen(2018, '2019-02-01T09:30:00');
   assert.deepEqual([before.parents.length, before.deceased.parents.length], [2, 0]);
   // մահը ստուգվում է միայն ՔԿԱԳ-ով. ՔԿԱԳ-ում մահվան ակտ չունեցողը համարվում է կենդանի
-  const tigran = civilKinship({ declaranttype: 1, ssn: '0306800215', year: 2025, publishedon: '2026-03-30T20:00:00', declarant: null }, ext);
+  const tigran = civilKinship({ declaranttype: 1, ssn: '0000100112', year: 2025, publishedon: '2026-03-30T20:00:00', declarant: null }, ext);
   assert.deepEqual([tigran.deceased.inlaws.length, tigran.civil.inlaws], [0, 2]);
   // ՀԾՀ չունեցող անձ (Տիգրանի մայրը)՝ չի ստուգվում, հաշվվում է
   assert.ok(tigran.unchecked.some((x) => x.firstName === 'Ռուզաննա'));
@@ -300,15 +301,15 @@ test('DEC-R3/DEC-R4: penalties file (all declaration statuses, missing declarati
   assert.equal(decl(R, 'D-111-2025').scopes[0].results['DEC-R4'].status, 'fired');
   // EPD-ում հայտարարագիր չկա, տույժերի ֆայլում կա
   const missing = R.declarations.filter((u) => u.missing);
-  assert.deepEqual(missing.map((u) => u.profile.ssn).sort(), ['0101900111', '2603690617']);
+  assert.deepEqual(missing.map((u) => u.profile.ssn).sort(), ['0000100001', '0000101962']);
   assert.ok(missing.every((u) => u.scopes[0].results['DEC-R4'].status === 'fired'));
   // կապակցման համար անբավարար գրառումներ (ՀԾՀ կամ տարի չկա)՝ միավոր չեն ստեղծում
-  assert.equal(R.declarations.filter((u) => u.missing && u.profile.ssn === '1501870928').length, 0);
+  assert.equal(R.declarations.filter((u) => u.missing && u.profile.ssn === '0000101148').length, 0);
 
   // ֆայլի վերնագրերով ճանաչում (սյունակների հերթականությունը կարևոր չէ)
   const { records, missingColumns } = parsePenaltyRows([
     ['ՀԾՀ', 'Տարի', 'ՎԻՎ Ա\nամսաթիվ', 'Հայտարարագրի\nկամ\nհաշվետվություն\nտեսակ', 'Անուն', 'Ազգանուն'],
-    ['3001720556', '2024', '45762', 'Տարեկան', 'Վահե', 'Ղազարյան'],
+    ['0000102184', '2024', '45762', 'Տարեկան', 'Վահե', 'Ղազարյան'],
     ['', '', '45762', '', 'Անհայտ', ''],
   ]);
   assert.equal(records.length, 2);
@@ -317,12 +318,67 @@ test('DEC-R3/DEC-R4: penalties file (all declaration statuses, missing declarati
   assert.ok(missingColumns.includes('basis'));
 });
 
-test('only yearly declarations are analysed (assumption/termination: under discussion)', async () => {
+test('DEC-R3/DEC-R4: person history — any declaration type, this and later yearly declarations, applied once', async () => {
   const { demoPenalties } = await import('../src/data/penalties.js');
-  const termination = { ...demoPenalties()[2], row: 99, declarationKind: 'Դադարեցնելու', declarationType: 3, ssn: '1111111111' };
+  const R = evaluateAll({ ...base, penalties: { records: demoPenalties() } });
+  const res = (code, person, id) => decl(R, code).scopes.find((s) => s.key === ind(person)).results[id];
+  // ստանձնելու հայտարարագիրը (2021) հրապարակվել է տույժից հետո → DEC-R3 հաջորդ տարիների տարեկան հայտարարագրերում
+  assert.equal(res('D-107-2024', 'PR-107', 'DEC-R3').status, 'fired');
+  assert.equal(res('D-107-2025', 'PR-107', 'DEC-R3').status, 'fired');
+  // ստանձնելու հայտարարագիրը (2022) EPD-ում չկա → DEC-R4
+  assert.equal(res('D-105-2025', 'PR-105', 'DEC-R4').status, 'fired');
+  // ընտանիքի անդամի տույժը՝ նրա առանձին հաշվարկում, ոչ պաշտոնատար անձի և ոչ ընտանիքի կազմի
+  assert.equal(res('D-105-2024', 'PR-106', 'DEC-R3').status, 'fired');
+  assert.equal(res('D-105-2024', 'PR-105', 'DEC-R3').status, 'not_fired');
+  assert.equal(decl(R, 'D-105-2024').scopes.find((s) => s.kind === 'family').results['DEC-R3'].status, 'not_applicable');
+  // 2024-ի ուշացումը կիրառվում է նաև 2025-ի (սևագիր) վրա, իսկ 2025-ի չներկայացումը՝ ոչ 2024-ի վրա
+  assert.equal(decl(R, 'D-111-2025').scopes[0].results['DEC-R3'].status, 'fired');
+  assert.equal(decl(R, 'D-111-2025').scopes[0].results['DEC-R4'].status, 'fired');
+  assert.equal(res('D-111-2024', 'PR-111', 'DEC-R4').status, 'not_fired');
+  // մեկ անգամ՝ մի քանի ուշացման դեպքում էլ քաշը մեկն է
+  const extra = { ...demoPenalties()[0], id: 'PN-X', vivNumber: '99/26', vivDate: '2021-08-25', declarationKind: 'Ստանձնելու', declarationType: 2, ssn: '0000101148', year: 2021 };
+  const R2 = evaluateAll({ ...base, penalties: { records: [...demoPenalties(), extra] } });
+  const r3 = decl(R2, 'D-107-2025').scopes[0].results['DEC-R3'];
+  assert.equal(r3.status, 'fired');
+  assert.equal(r3.weight, 3);
+  // ՀԾՀ-ն վերցվում է պրոֆիլից (de_declaration.ssn-ը EPD-ում հիմնականում դատարկ է)
+  const { declarationSsn } = await import('../src/engine/evaluator.js');
+  const d = decl(R, 'D-111-2024').decl;
+  assert.equal(declarationSsn({ ...d, ssn: null }), '0000102184');
+});
+
+test('penalty record check against EPD on entry/import: not found, published before the penalty', async () => {
+  const { demoPenalties, finalizeRecord } = await import('../src/data/penalties.js');
+  const { checkPenaltyRecord } = await import('../src/engine/evaluator.js');
+  const P = demoPenalties();
+  const byViv = (n) => P.find((r) => r.vivNumber === n);
+  assert.equal(checkPenaltyRecord(byViv('61/26')).warning, 'not_found'); // Սամվել 2025, EPD-ում չկա
+  assert.equal(checkPenaltyRecord(byViv('48/26')).warning, 'before'); // Դավիթ 2025, հրապարակվել է մինչև տույժը
+  assert.equal(checkPenaltyRecord(byViv('41/25')).warning, null); // Վահե 2024, ուշացում
+  assert.equal(checkPenaltyRecord(byViv('57/26')).warning, null); // Վահե 2025, սևագիր՝ իրական չներկայացում
+  assert.equal(checkPenaltyRecord(byViv('70/26')), null); // չի կապակցվում (ՀԾՀ չկա)
+  // տարվա սխալ՝ հայտարարագիր չի գտնվում
+  assert.equal(checkPenaltyRecord(finalizeRecord({ ...byViv('41/25'), year: 2019 })).warning, 'not_found');
+});
+
+test('variables page: usage of simple (doc.) and external (ext.) variables', async () => {
+  const { refUsage } = await import('../src/engine/variableUsage.js');
+  assert.deepEqual(refUsage({}, 'ext', 'penalty_late_count', 'declarations'), ['DEC-R3']);
+  assert.deepEqual(refUsage({}, 'ext', 'civil_family_count', 'declarations'), ['DEC-R2']);
+  assert.ok(refUsage({}, 'doc', 'bank_start', 'declarations').includes('doc.money_start')); // ընթացիկ ծախսի բանաձև
+  assert.ok(refUsage({}, 'doc', 'cash_start', 'declarations').includes('DEC-R5'));
+  // կառուցիչով փոխված պայման և մասնագետի կանոն
+  const st = { ruleConfig: { 'DEC-R3': { expression: 'ext.penalty_unsubmitted_count >= 2' } }, customRules: [{ id: 'C-1', kind: 'expression', direction: 'declarations', expression: 'ext.penalty_late_count > 1' }] };
+  assert.deepEqual(refUsage(st, 'ext', 'penalty_late_count', 'declarations'), ['C-1']);
+  assert.deepEqual(refUsage(st, 'ext', 'penalty_unsubmitted_count', 'declarations'), ['DEC-R3', 'DEC-R4']);
+});
+
+test('only yearly declarations are evaluation units (other types feed the penalty history)', async () => {
+  const { demoPenalties } = await import('../src/data/penalties.js');
+  const termination = { ...demoPenalties()[2], row: 99, declarationKind: 'Դադարեցնելու', declarationType: 3, ssn: '0000100815' };
   const R = evaluateAll({ ...base, penalties: { records: [...demoPenalties(), termination] } });
   assert.ok(R.declarations.every((u) => (u.decl ? u.decl.declarationtype : u.declarationType) === 1));
-  assert.equal(R.declarations.filter((u) => u.profile.ssn === '1111111111').length, 0);
+  assert.equal(R.declarations.filter((u) => u.profile.ssn === '0000100815').length, 0);
 });
 
 test('penalties template (.xlsx) round-trip: written template is recognised on import', async () => {
@@ -333,9 +389,9 @@ test('penalties template (.xlsx) round-trip: written template is recognised on i
   const empty = parsePenaltyRows(await readXlsx(buildXlsx(sheets)));
   assert.deepEqual([empty.records.length, empty.missingColumns], [0, []]);
   // լրացված տող (ՀԾՀ՝ առաջին 0-ով, ամսաթիվ՝ տեքստ)
-  sheets[0].rows = [['1', '05/26', '12.05.2026', 'Տիգրան', 'Մկրտչյան', '', '0306800215', 'Պ/Ա', 'Կոմիտեի նախագահ', '2025', 'Տարեկան', '169.28/5', '', '', '', '']];
+  sheets[0].rows = [['1', '05/26', '12.05.2026', 'Տիգրան', 'Մկրտչյան', '', '0000100112', 'Պ/Ա', 'Կոմիտեի նախագահ', '2025', 'Տարեկան', '169.28/5', '', '', '', '']];
   const { records } = parsePenaltyRows(await readXlsx(buildXlsx(sheets)));
-  assert.deepEqual([records[0].ssn, records[0].vivDate, records[0].year, records[0].declarationType, records[0].issues], ['0306800215', '2026-05-12', 2025, 1, []]);
+  assert.deepEqual([records[0].ssn, records[0].vivDate, records[0].year, records[0].declarationType, records[0].issues], ['0000100112', '2026-05-12', 2025, 1, []]);
 });
 
 test('stored evaluations: results change only after re-evaluation; local actions re-evaluate the unit', async () => {
@@ -386,19 +442,124 @@ test('family composition: a family member who is also an official is included vi
   assert.equal(arsen.scopes.filter((s) => s.kind === 'individual').length, 1);
 });
 
-test('manual flag (DEC-R7) applies only to the chosen scope: declarant individual or family composition', () => {
+test('combined score (DEC-04, C2): unique fired indicators of all calculations + one DEC-R7 flag, never above 100', async () => {
+  const { declarationWeightTotal, combinedScore } = await import('../src/engine/evaluator.js');
+  const { demoPenalties } = await import('../src/data/penalties.js');
+  const st = { ...base, penalties: { records: demoPenalties() } };
+  const R = evaluateAll(st);
+  assert.equal(declarationWeightTotal(st), 100);
+  const t = R.declarations.find((u) => u.code === 'D-105-2025');
+  // DEC-R1՝ պաշտոնյա և ընտանիքի կազմ (մեկ անգամ), DEC-R2 և DEC-R4՝ պաշտոնյա, DEC-R3՝ կին (առանձին հայտարարագիր)
+  const ids = t.indicators.map((x) => x.ruleId).sort();
+  assert.deepEqual(ids, ['DEC-R1', 'DEC-R2', 'DEC-R3', 'DEC-R4']);
+  assert.equal(t.indicators.find((x) => x.ruleId === 'DEC-R1').scopes.length, 2);
+  assert.equal(t.score, 30 + 5 + 3 + 7);
+  // միավորը = եզակի ցուցանիշների քաշերի գումար բոլոր միավորների համար
+  for (const u of R.declarations) {
+    const fired = new Map();
+    for (const sc of u.scopes) for (const r of Object.values(sc.results)) if (r.status === 'fired') fired.set(r.ruleId, r.weight);
+    assert.equal(u.score, [...fired.values()].reduce((a, w) => a + w, 0), u.code);
+    assert.ok(u.score <= 100);
+    assert.equal(u.risky, u.score >= u.threshold);
+  }
+  // DEC-R7. մեկ նշում հայտարարագրի համար, առավելագույն քաշով սահմանափակված. նախկին երկու նշումները (առանձին/ընտանիք)՝ մեծագույնը
+  const withFlags = (flags, cfg = {}) => evaluateAll({ ...st, ruleConfig: cfg, manualFlags: flags.map((f, i) => ({ id: `M${i}`, direction: 'declarations', unitId: t.id, note: `n${i}`, ...f })) }).declarations.find((u) => u.code === 'D-105-2025');
+  assert.equal(withFlags([{ weight: 20 }]).score, 45 + 20);
+  assert.equal(withFlags([{ weight: 10, scope: 'individual' }, { weight: 20, scope: 'family' }]).score, 45 + 20);
+  assert.equal(withFlags([{ weight: 20 }], { 'DEC-R7': { weight: 15 } }).score, 45 + 15);
+  // ընտանիքի կազմում միայն աշխատած ցուցանիշը համակցվում է անձանց ցուցանիշների հետ
+  assert.ok(combinedScore([{ label: 'ա', results: { X: { ruleId: 'X', status: 'fired', weight: 30 } } }, { label: 'ընտ', results: { X: { ruleId: 'X', status: 'fired', weight: 30 }, Y: { ruleId: 'Y', status: 'fired', weight: 25 } } }], null).score === 55);
+});
+
+test('DEC-R5: mortgage loans (keyword in the received-loan row text) are not counted', () => {
+  const r5 = (st) => evaluateAll(st).declarations.find((u) => u.code === 'D-108-2024').scopes[0].results['DEC-R5'];
+  // 1.2 մլն սպառողական + 15 մլն հիփոթեքային («Հիփոթեքային վարկ…» նկարագրությամբ), կանխիկ տարեսկզբին՝ 1.5 մլն
+  const r = r5(base);
+  assert.equal(r.status, 'fired');
+  assert.ok(r.values.some((x) => /հիփոթեքային/.test(x.label) && x.value === 15000000));
+  // բանալի բառեր չկան՝ հիփոթեքը հաշվվում է (16.2 մլն > 1.5 մլն)
+  assert.equal(r5({ ...base, variables: { ...base.variables, mortgage_keywords: [{ value: [], effectiveFrom: '2020-01-01' }] } }).status, 'not_fired');
+  // բառը համեմատվում է որպես բառի մաս և առանց մեծատառի տարբերության
+  assert.equal(r5({ ...base, variables: { ...base.variables, mortgage_keywords: [{ value: ['ՀԻՓՈԹԵՔ'], effectiveFrom: '2020-01-01' }] } }).status, 'fired');
+});
+
+test('DEC-R6: family-total cash, sequential conditions (a → b), (c) only in the disabled reserve DEC-R6-2', async () => {
+  const { declarationWeightTotal } = await import('../src/engine/evaluator.js');
+  const R = evaluateAll(base);
+  // ընտանիքի կազմով հաշվարկ կա՝ անհատական հաշվարկներում կիրառելի չէ
+  const d101 = decl(R, 'D-101-2025');
+  assert.ok(d101.scopes.filter((sc) => sc.kind !== 'family').every((sc) => sc.results['DEC-R6'].status === 'not_applicable'));
+  assert.notEqual(d101.scopes.find((sc) => sc.kind === 'family').results['DEC-R6'].status, 'not_applicable');
+  // Տիգրան + Մարինե 2024. առանձին կանխիկը < 5 մլն, ընտանիքինը՝ 6.45 / 7 մլն ≥ 3 × անկանխիկ (1.5 / 2 մլն)
+  const d105 = decl(R, 'D-105-2024');
+  assert.ok(d105.scopes.filter((sc) => sc.kind !== 'family').every((sc) => sc.exp.cashStart < 5e6 && sc.exp.cashEnd < 5e6));
+  assert.equal(d105.scopes.find((sc) => sc.kind === 'family').results['DEC-R6'].status, 'fired');
+  assert.ok(d105.indicators.some((x) => x.ruleId === 'DEC-R6' && x.scopes.length === 1));
+  // ընտանիքի անդամներ չկան՝ հայտարարատուի հաշվարկը. (գ) այլևս չի ստուգվում
+  const r6 = decl(R, 'D-110-2025').scopes[0].results['DEC-R6'];
+  assert.equal(r6.status, 'fired');
+  assert.ok(r6.values.some((v) => v.label === 'Պայմաններ տարեսկզբին' && v.value === '(ա) ոչ → (բ) չի ստուգվել'));
+  // պահուստային DEC-R6-2-ը լռելյայն անջատված է և քաշերի գումարում չի մտնում
+  assert.ok(!('DEC-R6-2' in decl(R, 'D-110-2025').scopes[0].results));
+  assert.equal(declarationWeightTotal(base), 100);
+  const R2 = evaluateAll({ ...base, ruleConfig: { 'DEC-R6-2': { enabled: true } } });
+  const r62 = decl(R2, 'D-110-2025').scopes[0].results['DEC-R6-2'];
+  assert.equal(r62.status, 'not_fired'); // կանխիկը հիմնավորվում է նախորդ տարիների խնայողությամբ
+  assert.ok(r62.values.some((v) => v.label === 'Պայմաններ տարեվերջին' && v.value === '(ա) այո → (բ) այո → (գ) ոչ'));
+});
+
+test('DEC-10: specialist-added alienations count as income (Ե), acquisitions as acquired property (Գ), per person', async () => {
+  const { profileChildren } = await import('../src/data/epd/repository.js');
   const R0 = evaluateAll(base);
-  const t0 = R0.declarations.find((u) => u.code === 'D-105-2025');
-  const id = t0.id;
-  const scoresOf = (scope) => {
-    const R = evaluateAll({ ...base, manualFlags: [{ id: 'M1', direction: 'declarations', unitId: id, weight: 20, ...(scope ? { scope } : {}) }] });
-    const t = R.declarations.find((u) => u.code === 'D-105-2025');
-    return t.scopes.map((s, i) => s.score - t0.scopes[i].score);
-  };
-  // scopes: հայտարարատու, կին (առանձին հայտարարագիր), ընտանիքի կազմ
-  assert.deepEqual(scoresOf('individual'), [20, 0, 0]);
-  assert.deepEqual(scoresOf('family'), [0, 0, 20]);
-  assert.deepEqual(scoresOf(undefined), [20, 0, 0]); // նախկին նշում՝ առանց տարբերակի
+  const u0 = decl(R0, 'D-101-2025');
+  const d = u0.decl;
+  const minor = profileChildren('de_profilefamilymembers', d.declarant).find((x) => x.type === 2);
+  const item = (kind, amount, owner = {}) => ({ _declaration: d.instanceid, _item: true, kind, name: kind, amount, description: '', profile: d.declarant, familymembertype: null, ...owner });
+  const R = evaluateAll({ ...base, corrections: {
+    'item:1': item('alienation', 1000000),
+    'item:2': item('acquisition', 400000),
+    'item:3': item('acquisition', 250000, { profile: minor.profile, familymembertype: 2 }), // չհայտարարագրող անչափահաս
+  } });
+  const u = decl(R, 'D-101-2025');
+  const ind = (x) => x.scopes[0].exp;
+  const fam = (x) => x.scopes.find((sc) => sc.kind === 'family').exp;
+  // հայտարարատու. Ե +1 մլն, Գ +0.4 մլն (անչափահասինը՝ ոչ) → ԸՏԾ +0.6 մլն
+  assert.equal(ind(u).E - ind(u0).E, 1000000);
+  assert.equal(ind(u).G - ind(u0).G, 400000);
+  assert.equal(Math.round(ind(u).annual - ind(u0).annual), 600000);
+  // ընտանիքի կազմ. ներառված է նաև անչափահասի ձեռքբերումը
+  assert.equal(fam(u).G - fam(u0).G, 650000);
+  assert.equal(Math.round(fam(u).annual - fam(u0).annual), 350000);
+  // ճշգրտումների մաս են. «ճշգրտումից առաջ» հաշվարկում չկան
+  assert.equal(Object.keys(u.corrections).length, 3);
+  assert.equal(ind(u.original).E, ind(u0).E);
+});
+
+test('login via NAP (NFR-05…NFR-09): only eID/mID, PSN required, registered and active user', async () => {
+  const { authenticate, bprPerson, DEFAULT_USERS } = await import('../src/engine/auth.js');
+  const token = (acm, profile) => ({ iss: 'https://nid.e-gov.am', aud: 'cpc', acm, sub: profile.psn || profile.document_number, profile });
+  const admin = DEFAULT_USERS.find((u) => u.role === 'admin');
+  assert.ok(admin && admin.name); // առաջին ադմինիստրատորը՝ տեղակայման ժամանակ, անունը՝ ԲՊՌ-ից
+  assert.equal(authenticate(DEFAULT_USERS, token('eid', { psn: admin.ssn })).user.id, admin.id);
+  assert.equal(authenticate(DEFAULT_USERS, token('mid', { psn: admin.ssn })).ok, true);
+  assert.match(authenticate(DEFAULT_USERS, token('email', { psn: admin.ssn })).reason, /թույլատրված չէ/);
+  assert.match(authenticate(DEFAULT_USERS, token('eid', { document_number: 'AH1234567' })).reason, /ՀԾՀ չկա/);
+  assert.match(authenticate(DEFAULT_USERS, token('eid', { psn: '0000100519' })).reason, /գրանցված չէ/);
+  const off = DEFAULT_USERS.map((u) => (u.id === admin.id ? { ...u, active: false } : u));
+  assert.match(authenticate(off, token('eid', { psn: admin.ssn })).reason, /ապաակտիվ/);
+  // օգտատիրոջ ավելացում ՀԾՀ-ով. տվյալները ԲՊՌ-ից
+  assert.equal(bprPerson('0000100519').name, 'Մարիամ Կիրակոսյան');
+  assert.equal(bprPerson('0000000000').ok, false);
+  assert.match(bprPerson('0000101518').reason, /մահացած/);
+});
+
+test('weights: active declaration rules + DEC-R7 maximum must total 100', async () => {
+  const { declarationWeightTotal } = await import('../src/engine/evaluator.js');
+  assert.equal(declarationWeightTotal(base), 100);
+  assert.equal(declarationWeightTotal({ ...base, ruleConfig: { 'DEC-R5': { enabled: false } } }), 95);
+  assert.equal(declarationWeightTotal({ ...base, ruleConfig: { 'DEC-R5': { weight: 10 } } }), 105);
+  assert.equal(declarationWeightTotal({ ...base, ruleConfig: { 'DEC-R7': { weight: 20 } } }), 95);
+  assert.equal(declarationWeightTotal({ ...base, customRules: [{ id: 'DEC-C01', kind: 'expression', direction: 'declarations', expression: 'doc.year > 0', weight: 5, enabled: true }] }), 105);
 });
 
 test('builder: complex document variables equal their formulas over simple variables', async () => {
@@ -414,7 +575,7 @@ test('builder: complex document variables equal their formulas over simple varia
     assert.ok(near(g('loans_deposits_start'), g('loans_given_start') + g('deposits_start')), u.code);
     assert.ok(near(g('loans_deposits_end'), g('loans_given_end') + g('deposits_end')), u.code);
     assert.ok(near(g('noncash_end'), g('bank_end') + g('eacc_end') + g('deposits_end')), u.code);
-    assert.ok(near(g('acquisitions'), g('realestate_acquired') + g('vehicles_acquired')), u.code);
+    assert.ok(near(g('acquisitions'), g('realestate_acquired') + g('vehicles_acquired') + g('manual_acquisitions')), u.code);
     assert.ok(near(g('alienations'), g('realestate_alienated') + g('vehicles_alienated')), u.code);
     assert.ok(near(g('expense_annual'), g('money_start') + g('income') - g('acquisitions') - g('money_end') + g('loans_deposits_end') - g('loans_deposits_start')), u.code);
     n++;
@@ -487,7 +648,7 @@ test('multi-direction system variables: one value shared by rules of several dir
   // «Կանխիկի շեմ»՝ հայտարարագրեր + բարեվարքություն (DEC-R6, INT-R11)
   assert.deepEqual(varDirections(variableDefByKey.cash_threshold), ['declarations', 'integrity']);
   const imp = variableImpact(base, 'cash_threshold');
-  assert.deepEqual(imp.map((x) => `${x.id}:${x.direction}`).sort(), ['DEC-R6:declarations', 'INT-R11:integrity']);
+  assert.deepEqual(imp.map((x) => `${x.id}:${x.direction}`).sort(), ['DEC-R6-2:declarations', 'DEC-R6:declarations', 'INT-R11:integrity']);
   // մասնագետի ստեղծած մի քանի ուղղության փոփոխական՝ կառուցիչի կանոններում
   const st = { ...base,
     customVariableDefs: [{ key: 'big_cash', direction: 'declarations', directions: ['declarations', 'integrity'], label: 'Խոշոր կանխիկ', type: 'number', unit: 'AMD', note: '' }],
@@ -518,7 +679,6 @@ test('predefined system variables: characteristics can be overridden (key and ty
   const R = evaluateAll(st);
   assert.equal(R.declarations.find((u) => u.code === 'D-108-2025').scopes[0].results['DEC-R6'].status, 'fired');
   // հաշվարկում անմիջապես օգտագործվող փոփոխականներ
-  assert.deepEqual(variableImpact(base, 'manual_max_weight').map((x) => x.id), ['DEC-R7']);
   assert.equal(variableImpact(base, 'dec_threshold').length, 1);
 });
 
@@ -555,7 +715,8 @@ test('open questions are read from docs/SRS.md', async () => {
   const qs = parseOpenQuestions(fs.readFileSync(new URL('../docs/SRS.md', import.meta.url), 'utf8'));
   assert.ok(qs.length > 30);
   assert.ok(qs.every((q) => /^Q-\d+$/.test(q.id) && q.text && q.status));
-  assert.equal(qs.find((q) => q.id === 'Q-25').accepted, true);
+  assert.equal(qs.find((q) => q.id === 'Q-54').accepted, true);
+  assert.equal(qs.find((q) => q.id === 'Q-25').accepted, false); // վերաբացված (25.11.2026)
   assert.equal(qs.find((q) => q.id === 'Q-17').accepted, false); // «Մասամբ ընդունված»՝ բաց
   assert.equal(qs.find((q) => q.id === 'Q-48').status, 'Բաց');
 });

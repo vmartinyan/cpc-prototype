@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  AppBar, Box, Drawer, IconButton, List, ListItemButton, ListItemIcon, ListItemText, Toolbar, Typography, TextField, MenuItem,
+  AppBar, Box, Drawer, IconButton, List, ListItemButton, ListItemIcon, ListItemText, Toolbar, Typography,
   Divider, ListSubheader, useMediaQuery, Chip, Tooltip, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Collapse,
 } from '@mui/material';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -18,11 +18,12 @@ import HubOutlinedIcon from '@mui/icons-material/HubOutlined';
 import FolderOpenOutlinedIcon from '@mui/icons-material/FolderOpenOutlined';
 import ManageAccountsOutlinedIcon from '@mui/icons-material/ManageAccountsOutlined';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import LogoutIcon from '@mui/icons-material/Logout';
+import LoginPage from './pages/Login.jsx';
 import { layout } from './theme/tokens.js';
 import { useStore, ROLES, can } from './engine/store.js';
 import Dashboard from './pages/Dashboard.jsx';
-import { DeclarationsList, DeclarationDetail, DeclarationTypePage } from './pages/Declarations.jsx';
-import { DECLARATION_TYPE } from './data/epd/classifiers.js';
+import { DeclarationsList, DeclarationDetail } from './pages/Declarations.jsx';
 import { PartiesList, PartyDetail, PartyPersonDetail } from './pages/Parties.jsx';
 import { GiftsList, GiftDetail } from './pages/Gifts.jsx';
 import { IntegrityList, IntegrityDetail } from './pages/Integrity.jsx';
@@ -36,14 +37,7 @@ import { OpenQuestionsButton } from './components/OpenQuestions.jsx';
 const NAV = [
   { group: 'Վերլուծություն' },
   { path: '/', label: 'Վահանակ', icon: DashboardOutlinedIcon, perm: 'dashboard' },
-  {
-    path: '/declarations', label: 'Հայտարարագրեր', icon: DescriptionOutlinedIcon, perm: 'view_docs',
-    children: [
-      { path: '/declarations', label: 'Տարեկան' },
-      { path: '/declarations/assumption', label: 'Պաշտոնը ստանձնելու' },
-      { path: '/declarations/termination', label: 'Պաշտոնը դադարեցնելու' },
-    ],
-  },
+  { path: '/declarations', label: 'Հայտարարագրեր', icon: DescriptionOutlinedIcon, perm: 'view_docs' },
   { path: '/parties', label: 'Կուսակցություններ', icon: GroupsOutlinedIcon, perm: 'view_docs' },
   { path: '/gifts', label: 'Նվերների ձևաթղթեր', icon: CardGiftcardOutlinedIcon, perm: 'view_docs' },
   { path: '/integrity', label: 'Բարեվարքություն', icon: FactCheckOutlinedIcon, perm: 'view_docs' },
@@ -82,8 +76,6 @@ function route(path) {
   switch (seg[0]) {
     case undefined: return { el: <Dashboard />, perm: 'dashboard' };
     case 'declarations':
-      if (seg[1] === 'assumption') return { el: <DeclarationTypePage key="a" type={DECLARATION_TYPE.assumption} />, perm: 'view_docs' };
-      if (seg[1] === 'termination') return { el: <DeclarationTypePage key="t" type={DECLARATION_TYPE.termination} />, perm: 'view_docs' };
       return { el: seg[1] ? <DeclarationDetail key={seg[1]} id={seg[1]} tab={seg[2]} /> : <DeclarationsList />, perm: 'view_docs' };
     case 'parties':
       if (seg[1] === 'person') return { el: <PartyPersonDetail id={seg.slice(2).join('/')} />, perm: 'view_docs' };
@@ -114,6 +106,9 @@ export default function App() {
   // ենթամենյուներ. բացվում են մայր կետը սեղմելիս, իսկ ենթակետի էջը բաց լինելու դեպքում մնում են բաց
   const [openNav, setOpenNav] = useState({});
   useEffect(() => { setOpenNav({}); }, [path]);
+  // մուտք ԵՍ ԵՄ-ով (NFR-05…NFR-09). մուտք գործած չլինելու կամ հաշիվը ապաակտիվացված լինելու դեպքում՝ մուտքի էջ
+  const me = state.session && (state.users || []).find((u) => u.id === state.session.userId);
+  if (!me || !me.active) return <LoginPage />;
 
   const drawer = (
     <Box>
@@ -172,12 +167,11 @@ export default function App() {
             ԿԿՀ · Ռիսկերի վերլուծության մոդուլ <Box component="span" sx={{ opacity: 0.7, fontWeight: 400, display: { xs: 'none', md: 'inline' } }}>— նախատիպ</Box>
           </Typography>
           {outages > 0 && <Chip size="small" color="warning" label={`${outages} աղբյուր անհասանելի`} onClick={() => (window.location.hash = '/external')} />}
-          <TextField
-            select size="small" value={state.role} onChange={(e) => update({ role: e.target.value })} label="Դեր"
-            sx={{ minWidth: { xs: 140, sm: 230 }, '& .MuiInputBase-root': { color: '#fff', bgcolor: 'rgba(255,255,255,0.08)' }, '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.8)' }, '& .MuiSvgIcon-root': { color: '#fff' }, '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' } }}
-          >
-            {Object.entries(ROLES).map(([k, l]) => <MenuItem key={k} value={k}>{l}</MenuItem>)}
-          </TextField>
+          <Box sx={{ textAlign: 'right', lineHeight: 1.2, display: { xs: 'none', sm: 'block' } }}>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>{me.name}</Typography>
+            <Typography variant="caption" sx={{ opacity: 0.8 }}>{ROLES[me.role]}</Typography>
+          </Box>
+          <Tooltip title="Ելք"><IconButton color="inherit" onClick={() => update({ session: null })}><LogoutIcon /></IconButton></Tooltip>
           <Tooltip title="Վերականգնել նախնական վիճակը"><IconButton color="inherit" onClick={() => setConfirmReset(true)}><RestartAltIcon /></IconButton></Tooltip>
         </Toolbar>
       </AppBar>

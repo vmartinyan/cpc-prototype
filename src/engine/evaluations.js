@@ -11,12 +11,12 @@
 
 /** Կանոնների արդյունքների համառոտ նկարագիր՝ պահված և կենդանի գնահատումները համեմատելու համար */
 export function resultSignature(unit) {
-  return JSON.stringify((unit.scopes || []).map((s) => [s.key, s.score, Object.values(s.results || {}).map((r) => `${r.ruleId}:${r.status}:${r.weight ?? ''}`).sort()]));
+  return JSON.stringify([unit.score, ...(unit.scopes || []).map((s) => [s.key, Object.values(s.results || {}).map((r) => `${r.ruleId}:${r.status}:${r.weight ?? ''}`).sort()])]);
 }
 
 /** Հայտարարագրի «տեղական» գործողություններ (ձեռքով նշումներ). փոխվելու դեպքում վերագնահատվում է ավտոմատ */
 export function localSignature(unit) {
-  return JSON.stringify((unit.manual || []).map((m) => [m.id, m.weight, m.scope || 'individual']));
+  return JSON.stringify((unit.manual || []).map((m) => [m.id, m.weight]));
 }
 
 /** Հայտարարագրի ճշգրտումներ (DEC-10). փոխվելու դեպքում պահանջվում է վերագնահատում, նույնիսկ եթե արդյունքը չի փոխվում */
@@ -31,7 +31,8 @@ export function snapshotOf(unit, { at, by, auto = false }) {
     corrSig: correctionsSignature(unit),
     score: unit.score,
     risky: unit.risky,
-    scopes: (unit.scopes || []).map((s) => ({ key: s.key, results: s.results, score: s.score, risky: s.risky })),
+    indicators: unit.indicators,
+    scopes: (unit.scopes || []).map((s) => ({ key: s.key, results: s.results, score: s.score })),
   };
 }
 
@@ -40,9 +41,9 @@ export function withStored(unit, ev) {
   if (!ev) return { ...unit, evaluation: null, stale: false };
   const scopes = (unit.scopes || []).map((s) => {
     const st = ev.scopes.find((x) => x.key === s.key);
-    return st ? { ...s, results: st.results, score: st.score, risky: st.risky } : s;
+    return st ? { ...s, results: st.results, score: st.score } : s;
   });
-  return { ...unit, scopes, score: ev.score, risky: ev.risky, evaluation: { at: ev.at, by: ev.by, auto: ev.auto }, stale: ev.sig !== resultSignature(unit) || (ev.corrSig !== undefined && ev.corrSig !== correctionsSignature(unit)), live: unit };
+  return { ...unit, scopes, score: ev.score, risky: ev.risky, indicators: ev.indicators || unit.indicators, evaluation: { at: ev.at, by: ev.by, auto: ev.auto }, stale: ev.sig !== resultSignature(unit) || (ev.corrSig !== undefined && ev.corrSig !== correctionsSignature(unit)), live: unit };
 }
 
 /** Միավորներ, որոնք պետք է գնահատվեն ավտոմատ. պահված արդյունք չունեն կամ փոխվել են դրանց տեղական գործողությունները */
@@ -51,6 +52,8 @@ export function autoEvaluations(units, stored, { at, by }) {
   for (const u of units) {
     const ev = stored?.[u.id];
     if (!ev) patch[u.id] = snapshotOf(u, { at, by: 'Ավտոմատ (նոր հայտարարագիր)', auto: true });
+    // նախկին ձևաչափով պահված արդյունք (մինչև համախառն միավորի Գ2 հաշվարկը). վերագնահատվում է ավտոմատ
+    else if (!ev.indicators) patch[u.id] = snapshotOf(u, { at, by: 'Ավտոմատ (հաշվարկի կարգի փոփոխություն)', auto: true });
     else if (ev.localSig !== localSignature(u)) patch[u.id] = snapshotOf(u, { at, by, auto: true });
   }
   return patch;

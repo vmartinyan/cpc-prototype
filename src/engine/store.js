@@ -9,11 +9,15 @@ import { createElement } from 'react';
 import { evaluateAll } from './evaluator.js';
 import { finalizeRecord, demoPenalties } from '../data/penalties.js';
 import { autoEvaluations, snapshotOf, withStored } from './evaluations.js';
+import { DEFAULT_USERS } from './auth.js';
 
 const KEY = 'cpc-risk-prototype-state-v1';
 
 export const INITIAL_STATE = {
-  role: 'analyst',
+  role: 'analyst', // մուտք գործած օգտատիրոջ դերը (NFR-05…NFR-09)
+  users: DEFAULT_USERS, // մոդուլի օգտատերեր. { id, ssn, name, patronymic, birthDate, unit, role, active, addedAt, addedBy, lastLogin }
+  session: null, // { userId, ssn, acm, at }. null՝ մուտք գործած չէ
+  authLog: [], // մուտքի փորձեր. { at, ssn, acm, ok, reason }
   variables: {}, // key → history[] (վերագրում է VARIABLE_DEFS-ի լռելյայն արժեքները)
   variableDefOverrides: {}, // նախասահմանված փոփոխականների փոխված բնութագրեր. key → { label, unit, note, directions, hidden }
   customVariableDefs: [], // մասնագետի ստեղծած համակարգային փոփոխականներ. { key, direction, label, type, unit, note }
@@ -43,6 +47,10 @@ function load() {
     if (!saved.penaltiesSeeded && !saved.penalties) st.penalties = INITIAL_STATE.penalties;
     // տույժերի գրառումներ առանց id-ի (նախորդ տարբերակ)
     if (st.penalties?.records) st.penalties = { ...st.penalties, records: st.penalties.records.map((r) => finalizeRecord(r)) };
+    // ցուցադրական ՀԾՀ-ները փոխվել են (0000xxxxxx). նախորդ ՀԾՀ-ներով պահված օգտատերերը և ցուցադրական տույժերը թարմացվում են
+    const oldSsn = (x) => x && !String(x).startsWith('0000');
+    if ((st.users || []).some((u) => oldSsn(u.ssn))) Object.assign(st, { users: INITIAL_STATE.users, session: null, authLog: [] });
+    if (st.penalties?.records?.some((r) => r.id?.startsWith('PN-DEMO-') && oldSsn(r.ssn))) st.penalties = { ...st.penalties, records: [...demoPenalties(), ...st.penalties.records.filter((r) => !r.id?.startsWith('PN-DEMO-'))] };
     return st;
   } catch {
     return INITIAL_STATE;
@@ -57,7 +65,8 @@ export function StoreProvider({ children }) {
     try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* պահոցը հասանելի չէ */ }
   }, [state]);
   const update = useCallback((fn) => setState((s) => ({ ...s, ...(typeof fn === 'function' ? fn(s) : fn) })), []);
-  const reset = useCallback(() => setState({ ...INITIAL_STATE, role: state.role }), [state.role]);
+  // նախնական վիճակ. մուտքը, օգտատերերը և մուտքի մատյանը պահպանվում են
+  const reset = useCallback(() => setState((s) => ({ ...INITIAL_STATE, role: s.role, session: s.session, users: s.users, authLog: s.authLog })), []);
   // «Կենդանի» գնահատում (ամեն փոփոխությունից հետո). նվերներ, կուսակցություններ, բարեվարքություն և կառուցիչի փորձարկում
   const { variables, variableDefOverrides, customVariableDefs, ruleConfig, customRules, formulaOverrides, derivedVars, corrections, manualFlags, outages, penalties } = state;
   const live = useMemo(() => evaluateAll({ variables, variableDefOverrides, customVariableDefs, ruleConfig, customRules, formulaOverrides, derivedVars, corrections, manualFlags, outages, penalties }), [variables, variableDefOverrides, customVariableDefs, ruleConfig, customRules, formulaOverrides, derivedVars, corrections, manualFlags, outages, penalties]);
@@ -80,7 +89,7 @@ export function StoreProvider({ children }) {
 
 export const useStore = () => useContext(Ctx);
 
-// ── Դերեր և իրավունքներ (NFR-02). նախատիպում դերը ընտրվում է վերևի ցանկից
+// ── Դերեր և իրավունքներ (NFR-02). դերը տրվում է ադմինիստրատորի կողմից, մուտքը՝ ԵՍ ԵՄ-ով (NFR-05…NFR-09)
 export const ROLES = {
   analyst: 'Վերլուծաբան / մասնագետ',
   rules_officer: 'Կանոնների պատասխանատու',

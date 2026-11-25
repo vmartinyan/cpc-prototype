@@ -25,7 +25,7 @@ import { parse, evaluate } from './expression.js';
 export const DEFAULT_FORMULAS = {
   money_start: 'doc.cash_start + doc.bank_start + doc.eacc_start',
   money_end: 'doc.cash_end + doc.bank_end + doc.eacc_end',
-  acquisitions: 'doc.realestate_acquired + doc.vehicles_acquired',
+  acquisitions: 'doc.realestate_acquired + doc.vehicles_acquired + doc.manual_acquisitions',
   loans_deposits_start: 'doc.loans_given_start + doc.deposits_start',
   loans_deposits_end: 'doc.loans_given_end + doc.deposits_end',
   expense_annual: 'doc.money_start + doc.income - doc.acquisitions - doc.money_end + doc.loans_deposits_end - doc.loans_deposits_start',
@@ -38,7 +38,7 @@ export const DEFAULT_FORMULAS = {
 export const effectiveFormulas = (state) => ({ ...DEFAULT_FORMULAS, ...Object.fromEntries(Object.entries(state?.formulaOverrides || {}).map(([k, v]) => [k, v.expression])) });
 /** Պարզ փոփոխականներ (աղյուսակի մեկ դաշտի գումար)՝ 4.1-ի բանաձևերի բաղադրիչներ */
 export const FORMULA_INPUTS = ['cash_start', 'cash_end', 'bank_start', 'bank_end', 'eacc_start', 'eacc_end', 'deposits_start', 'deposits_end', 'loans_given_start', 'loans_given_end',
-  'income', 'realestate_acquired', 'vehicles_acquired', 'realestate_alienated', 'vehicles_alienated', 'loans_received', 'salary_income', 'declared_expenses'];
+  'income', 'realestate_acquired', 'vehicles_acquired', 'realestate_alienated', 'vehicles_alienated', 'loans_received', 'salary_income', 'declared_expenses', 'manual_acquisitions', 'manual_alienations'];
 const astCache = new Map();
 const astOf = (expr) => { if (!astCache.has(expr)) astCache.set(expr, parse(expr)); return astCache.get(expr); };
 
@@ -63,6 +63,13 @@ export const FORMULA_SOURCES = {
   ],
 };
 
+/**
+ * Մասնագետի ավելացրած ձեռքբերումներ և օտարումներ (DEC-10, «Հայտարարագրի ճշգրտումներ»). պահվում են ճշգրտումների հետ՝
+ * corrections["item:<id>"] = { _declaration, _item: true, kind: 'acquisition' | 'alienation', name, amount, description, profile, familymembertype }.
+ * Օտարումը մտնում է եկամուտների (Ե) մեջ, ձեռքբերումը՝ ձեռք բերված գույքի (Գ)՝ հակառակ նշանով
+ */
+export const manualItems = (corrections) => Object.entries(corrections || {}).filter(([, c]) => c?._item).map(([key, c]) => ({ key, ...c }));
+
 /** Կիրառում է ճշգրտումները. corrections = { [entityid]: { _declaration, _table, <column>: value } } */
 export function applyCorrections(row, corrections) {
   const c = corrections?.[row.entityid];
@@ -83,6 +90,9 @@ export function computeExpense(decls, personFilter, corrections, formulas = DEFA
   const sum = (sources, field) => sources.reduce((s, src) => s + rows(src.table).filter(inTabs(src)).reduce((a, r) => a + (amd(r, field) || 0), 0), 0);
 
   // ── պարզ փոփոխականներ. աղյուսակի մեկ դաշտի գումար (ՀՀ դրամով, «առկա» ցանկ)
+  // մասնագետի ավելացրած տողեր՝ նույն անձի զտիչով, ինչ հայտարարագրի տողերը
+  const items = decls.flatMap((d) => manualItems(corrections).filter((it) => it._declaration === d.instanceid && personFilter({ profile: it.profile, familymembertype: it.familymembertype ?? null }, d)));
+  const itemSum = (kind) => items.filter((it) => it.kind === kind).reduce((a, it) => a + (Number(it.amount) || 0), 0);
   const fieldSum = (table, tab, f) => rows(table).filter((r) => tab === null || r.tabtype === tab).reduce((a, r) => a + (amd(r, f) || 0), 0);
   const incomeOf = (type) => rows('de_revenuesincomes').filter((r) => r.incometype === type).reduce((a, r) => a + (amd(r, 'amount') || 0), 0);
   const both = (k, table, tab) => ({ [`${k}_start`]: fieldSum(table, tab, 'amountatbeginningofyear'), [`${k}_end`]: fieldSum(table, tab, 'amountatendofyear') });
@@ -92,7 +102,9 @@ export function computeExpense(decls, personFilter, corrections, formulas = DEFA
     ...both('eacc', 'de_financialmeanselectronicaccountsandcryptocurrencies', TAB.eaccAvailable),
     ...both('deposits', 'de_loansanddepositsdepositdetails', TAB.depositAvailable),
     ...both('loans_given', 'de_loansanddepositsloandetails', TAB.loanGiven),
-    income: sum(FORMULA_SOURCES.income, 'amount'),
+    income: sum(FORMULA_SOURCES.income, 'amount') + itemSum('alienation'), // օտարումները՝ որպես եկամուտ
+    manual_acquisitions: itemSum('acquisition'),
+    manual_alienations: itemSum('alienation'),
     realestate_acquired: fieldSum('de_realestatedetails', TAB.realestateAcquired, 'dealamount'),
     vehicles_acquired: fieldSum('de_vehicledetails', TAB.vehicleAcquired, 'dealamount'),
     realestate_alienated: fieldSum('de_realestatedetails', TAB.realestateAlienated, 'dealamount'),
@@ -132,6 +144,7 @@ export function computeExpense(decls, personFilter, corrections, formulas = DEFA
     noncashStart: value('noncash_start'), noncashEnd: value('noncash_end'),
     salary: inputs.salary_income, loansReceived: inputs.loans_received, saleIncome: incomeOf(8),
     realestateOwned: countOwned('de_realestatedetails'), vehiclesOwned: countOwned('de_vehicledetails'),
+    manualAcquisitions: inputs.manual_acquisitions, manualAlienations: inputs.manual_alienations, items,
     inputs, value, formulas,
     rows,
   };

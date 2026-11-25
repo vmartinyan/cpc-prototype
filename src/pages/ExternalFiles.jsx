@@ -4,7 +4,7 @@
  * Երեք ներդիր՝ ըստ հայտարարագրի տեսակի։ Տարեթվի ֆիլտրը՝ ըստ հայտարարագրի տարվա, լռելյայն՝ ընթացիկ տարի, իսկ դրա
  * համար գրառում չլինելու դեպքում՝ ամենավերջին առկա տարին (տարի չունեցող գրառումները երևում են «Բոլորը» ընտրելիս)։
  */
-import { useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Grid, IconButton, MenuItem, Stack, Tab, Tabs, TextField, Tooltip, Typography,
 } from '@mui/material';
@@ -16,9 +16,10 @@ import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import { buildXlsx, downloadXlsx } from '../data/xlsxWriter.js';
 import { useStore, can, ROLES } from '../engine/store.js';
 import { readXlsx } from '../data/xlsx.js';
-import { parsePenaltyRows, demoPenalties, finalizeRecord, isLinkable, penaltyKey, duplicateKey, KIND_LABEL, penaltyTemplateSheets } from '../data/penalties.js';
-import { DECLARATION_TYPE, lk } from '../data/epd/classifiers.js';
-import { PageHeader, Section, SimpleTable, InfoNote, fmtDate, navigate } from '../components/common.jsx';
+import { parsePenaltyRows, demoPenalties, finalizeRecord, isLinkable, duplicateKey, KIND_LABEL, penaltyTemplateSheets } from '../data/penalties.js';
+import { DECLARATION_TYPE } from '../data/epd/classifiers.js';
+import { checkPenaltyRecord } from '../engine/evaluator.js';
+import { PageHeader, Section, SimpleTable, InfoNote, fmtDate } from '../components/common.jsx';
 
 const TABS = [
   { type: DECLARATION_TYPE.yearly, label: 'Տարեկան' },
@@ -26,10 +27,12 @@ const TABS = [
   { type: DECLARATION_TYPE.termination, label: 'Պաշտոնը դադարեցնելու' },
 ];
 const DECLARANT_TYPES = ['Պ/Ա', 'Ը/Ա', 'Կ Պ/Ա'];
+/** Ֆայլի գրառման հղում հաղորդագրությունում */
+const rowRef = (r) => `տող ${r.row}${r.lastName ? `, ${r.lastName}` : ''}`;
 const CURRENT_YEAR = new Date().getFullYear();
 
 export default function ExternalFilesPage() {
-  const { state, update, results } = useStore();
+  const { state, update } = useStore();
   const [tab, setTab] = useState(0);
   const [edit, setEdit] = useState(null); // { record } կամ { record: null, type } նորի համար
   const [del, setDel] = useState(null);
@@ -47,16 +50,6 @@ export default function ExternalFilesPage() {
     return { penalties: { ...prev, records: fn(prev.records), imports: importInfo ? [...(prev.imports || []), importInfo] : prev.imports || [] } };
   });
 
-  // Գրառում → տարեկան հայտարարագրերի ցանկի միավոր (ՀԾՀ + տարի + տեսակ)
-  const unitByKey = useMemo(() => {
-    const m = new Map();
-    for (const u of results.declarations) {
-      const keys = u.decl ? [penaltyKey(u.decl.ssn, u.decl.year, u.decl.declarationtype)] : [penaltyKey(u.profile.ssn, u.year, u.declarationType)];
-      for (const l of u.linked || []) keys.push(penaltyKey(l.ssn, l.year, l.declarationtype));
-      for (const k of keys) if (!m.has(k)) m.set(k, u);
-    }
-    return m;
-  }, [results.declarations]);
 
   const onFile = async (e) => {
     const file = e.target.files?.[0];
@@ -68,7 +61,9 @@ export default function ExternalFilesPage() {
       if (!parsed.length) throw new Error('Ֆայլում գրառումներ չկան');
       const existing = new Set(records.map(duplicateKey));
       const fresh = parsed.filter((r) => !existing.has(duplicateKey(r)));
-      setImporting({ fileName: file.name, parsed, fresh, missingColumns });
+      const checked = parsed.map((r) => ({ r, c: checkPenaltyRecord(r) }));
+      const by = (w) => checked.filter((x) => x.c?.warning === w).map((x) => x.r);
+      setImporting({ fileName: file.name, parsed, fresh, missingColumns, notFound: by('not_found'), before: by('before') });
     } catch (err) {
       setError(`Ֆայլը հնարավոր չէ կարդալ. ${err.message}`);
     }
@@ -98,7 +93,7 @@ export default function ExternalFilesPage() {
       />
       <InfoNote>
         Վարչական տույժերը (ԿԿՀ-ի կիրառած վարչական իրավախախտման վարույթներ) մուտքագրվում են այստեղ կամ ներմուծվում են Excel ֆայլից։ Ճիշտ ձևաչափը ստանալու համար ներբեռնեք նմուշը. սյունակները ճանաչվում են ըստ վերնագրի։
-        Տույժը հայտարարագրի հետ կապվում է ՀԾՀ-ով, հայտարարագրի տարով և տեսակով, տույժի ամսաթիվը՝ «ՎԻՎ Ա ամսաթիվ»։ Ներկայումս կանոններում օգտագործվում են միայն «Տարեկան» ներդիրի տվյալները։
+        Տույժը հայտարարագրի հետ կապվում է ՀԾՀ-ով, հայտարարագրի տարով և տեսակով, տույժի ամսաթիվը՝ «ՎԻՎ Ա ամսաթիվ»։ Բոլոր տեսակների տույժերը կիրառվում են տարեկան հայտարարագրերի վրա (DEC-R3, DEC-R4)։ Մուտքագրելիս և ներմուծելիս գրառումը ստուգվում է EPD-ով։
         Տվյալները պահվում են միայն մոդուլում (EPD-ում չեն գրվում)։
       </InfoNote>
       {!editable && <Alert severity="info" sx={{ mb: 2 }}>Տվյալները մշակում է մասնագետը կամ կանոնների պատասխանատուն։</Alert>}
@@ -118,7 +113,7 @@ export default function ExternalFilesPage() {
       )}
       {showUntyped && untyped.length > 0 && (
         <Section title="Առանց հայտարարագրի տեսակի">
-          <PenaltyTable rows={untyped} editable={editable} unitByKey={unitByKey} onEdit={(r) => setEdit({ record: r })} onDelete={setDel} />
+          <PenaltyTable rows={untyped} editable={editable} onEdit={(r) => setEdit({ record: r })} onDelete={setDel} />
         </Section>
       )}
 
@@ -138,7 +133,7 @@ export default function ExternalFilesPage() {
       <Tabs value={tab} onChange={(e, v) => setTab(v)} variant="scrollable" sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}>
         {TABS.map((t) => <Tab key={t.type} label={`${t.label} (${records.filter((r) => r.declarationType === t.type).length})`} />)}
       </Tabs>
-      <PenaltyTab key={TABS[tab].type} type={TABS[tab].type} records={records.filter((r) => r.declarationType === TABS[tab].type)} editable={editable} unitByKey={unitByKey}
+      <PenaltyTab key={TABS[tab].type} records={records.filter((r) => r.declarationType === TABS[tab].type)} editable={editable}
         onAdd={() => setEdit({ record: null, type: TABS[tab].type })} onEdit={(r) => setEdit({ record: r })} onDelete={setDel} />
 
       {edit && <RecordDialog edit={edit} onClose={() => setEdit(null)} onSave={saveRecord} />}
@@ -161,6 +156,8 @@ export default function ExternalFilesPage() {
               Ըստ տեսակի. {TABS.map((t) => `${t.label}՝ ${importing.parsed.filter((r) => r.declarationType === t.type).length}`).join(', ')}, առանց տեսակի՝ {importing.parsed.filter((r) => !r.declarationType).length}։
             </Typography>
             <Typography variant="body2" sx={{ mb: 1 }}>Կապակցվող (ՀԾՀ, տարի, տեսակ, ամսաթիվ)՝ {importing.parsed.filter(isLinkable).length}։</Typography>
+            {importing.notFound.length > 0 && <Alert severity="warning" sx={{ mb: 1 }}>EPD-ում հայտարարագիր չի գտնվել՝ {importing.notFound.length} գրառում ({importing.notFound.slice(0, 5).map(rowRef).join('; ')}{importing.notFound.length > 5 ? '; …' : ''})։ Ստուգեք ՀԾՀ-ն, տարին և տեսակը. այդ տույժերը կհամարվեն չներկայացում (DEC-R4)։</Alert>}
+            {importing.before.length > 0 && <Alert severity="info" sx={{ mb: 1 }}>Հայտարարագիրը հրապարակվել է մինչև տույժը՝ {importing.before.length} գրառում ({importing.before.slice(0, 5).map(rowRef).join('; ')}{importing.before.length > 5 ? '; …' : ''})։ Դրանք ուշացում չեն համարվի (DEC-R3 չի աշխատի)։</Alert>}
             {records.length > 0 && <Typography variant="body2" sx={{ mb: 1 }}>Արդեն առկա (նույն ՎԻՎ Ա, ամսաթիվ, ՀԾՀ)՝ {importing.parsed.length - importing.fresh.length}. «Ավելացնել» ռեժիմում դրանք կանտեսվեն։</Typography>}
             {importing.missingColumns.length > 0 && <Alert severity="warning">Ֆայլում չեն գտնվել սյունակներ՝ {importing.missingColumns.join(', ')}։</Alert>}
           </DialogContent>
@@ -176,7 +173,7 @@ export default function ExternalFilesPage() {
 }
 
 /** Մեկ ներդիր. տարեթվի ֆիլտր (հայտարարագրի տարի), աղյուսակ, ավելացում */
-function PenaltyTab({ type, records, editable, unitByKey, onAdd, onEdit, onDelete }) {
+function PenaltyTab({ records, editable, onAdd, onEdit, onDelete }) {
   // լռելյայն՝ ընթացիկ տարի, իսկ եթե դրա համար գրառում չկա՝ տվյալներում առկա ամենավերջին տարին
   const [year, setYear] = useState(() => {
     const ys = records.map((r) => r.year).filter((y) => y && y <= CURRENT_YEAR);
@@ -195,14 +192,12 @@ function PenaltyTab({ type, records, editable, unitByKey, onAdd, onEdit, onDelet
         {editable && <Button variant="contained" startIcon={<AddIcon />} onClick={onAdd}>Ավելացնել գրառում</Button>}
       </Stack>
       {noYear > 0 && year !== 'all' && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>{noYear} գրառում հայտարարագրի տարի չունի և երևում է միայն «Բոլորը» ընտրելիս։</Typography>}
-      {type !== DECLARATION_TYPE.yearly && <Alert severity="info" sx={{ mb: 1.5 }}>Այս տեսակի հայտարարագրերի վերլուծության մոտեցումը քննարկվում է. տվյալները պահվում են, բայց կանոններում դեռ չեն օգտագործվում։</Alert>}
-      <PenaltyTable rows={rows} editable={editable} unitByKey={unitByKey} onEdit={onEdit} onDelete={onDelete} empty={`${year === 'all' ? 'Գ' : `${year} թվականի հայտարարագրերի համար գ`}րառումներ չկան`} />
+      <PenaltyTable rows={rows} editable={editable} onEdit={onEdit} onDelete={onDelete} empty={`${year === 'all' ? 'Գ' : `${year} թվականի հայտարարագրերի համար գ`}րառումներ չկան`} />
     </Section>
   );
 }
 
-function PenaltyTable({ rows, editable, unitByKey, onEdit, onDelete, empty }) {
-  const linkOf = (r) => (isLinkable(r) && r.declarationType === DECLARATION_TYPE.yearly ? unitByKey.get(penaltyKey(r.ssn, r.year, r.declarationType)) : null);
+function PenaltyTable({ rows, editable, onEdit, onDelete, empty }) {
   return (
     <SimpleTable dense empty={empty} rows={rows} columns={[
       { key: 'viv', label: 'ՎԻՎ Ա', render: (r) => <><Typography variant="body2">{r.vivNumber || '—'}</Typography><Typography variant="caption" color="text.secondary">{fmtDate(r.vivDate)}</Typography></> },
@@ -211,13 +206,7 @@ function PenaltyTable({ rows, editable, unitByKey, onEdit, onDelete, empty }) {
       { key: 'y', label: 'Հայտ. տարի', render: (r) => r.year ?? '—' },
       { key: 'b', label: 'ՎԻՎ հիմք', render: (r) => r.basis || '—' },
       { key: 'a', label: 'Վարչական ակտ', render: (r) => <><Typography variant="body2">{r.act || '—'}</Typography>{r.decisionDate && <Typography variant="caption" color="text.secondary">որոշում {fmtDate(r.decisionDate)}</Typography>}</> },
-      { key: 'l', label: 'Կապակցում', render: (r) => {
-        if (r.issues.length) return <Chip size="small" color="warning" variant="outlined" label={`Չի կապակցվում՝ ${r.issues.join(', ')}`} />;
-        if (r.declarationType !== DECLARATION_TYPE.yearly) return <Typography variant="caption" color="text.secondary">Վերլուծությունը քննարկվում է</Typography>;
-        const u = linkOf(r);
-        if (!u) return <Typography variant="caption" color="text.secondary">Հայտարարագիրը ցանկում չէ</Typography>;
-        return <Chip size="small" variant="outlined" clickable color={u.missing ? 'error' : 'default'} onClick={() => navigate(`/declarations/${u.id}`)} label={u.missing ? 'Հայտարարագիր չկա' : `${u.code} · ${lk('c_wfstate', u.decl.wfstateid)}`} />;
-      } },
+      ...(rows.some((r) => r.issues.length) ? [{ key: 'l', label: 'Լրացում', render: (r) => (r.issues.length ? <Chip size="small" color="warning" variant="outlined" label={`Չի կապակցվում՝ ${r.issues.join(', ')}`} /> : '') }] : []),
       { key: 'src', label: 'Աղբյուր', render: (r) => <Tooltip title={[r.createdAt && `Ավելացվել է ${new Date(r.createdAt).toLocaleString('hy-AM')}${r.createdBy ? ` · ${r.createdBy}` : ''}`, r.updatedAt && `Խմբագրվել է ${new Date(r.updatedAt).toLocaleString('hy-AM')}${r.updatedBy ? ` · ${r.updatedBy}` : ''}`].filter(Boolean).join('\n') || ''}><Typography variant="caption" color="text.secondary">{r.source || '—'}{r.updatedAt ? ' · խմբագրված' : ''}</Typography></Tooltip> },
       ...(editable ? [{ key: 'act', label: '', render: (r) => (
         <Stack direction="row">
@@ -239,7 +228,8 @@ function RecordDialog({ edit, onClose, onSave }) {
   const ssnBad = f.ssn && !/^\d{10}$/.test(f.ssn);
   const yearBad = f.year !== '' && !/^\d{4}$/.test(String(f.year));
   const valid = f.vivDate && !ssnBad && !yearBad;
-  const save = () => onSave({
+  const [confirmed, setConfirmed] = useState(null);
+  const build = () => ({
     ...f,
     ssn: f.ssn.trim(),
     year: f.year === '' ? null : Number(f.year),
@@ -247,6 +237,15 @@ function RecordDialog({ edit, onClose, onSave }) {
     declarationKind: f.declarationType === '' ? (edit.record?.declarationKind || '') : KIND_LABEL[f.declarationType],
     decisionDate: f.decisionDate || null,
   });
+  // EPD-ով ստուգում (նախազգուշացում). նույն տվյալներով կրկին սեղմելիս պահպանվում է
+  const rec = finalizeRecord(build());
+  const check = checkPenaltyRecord(rec);
+  const sig = JSON.stringify([rec.ssn, rec.year, rec.declarationType, rec.declarantType, rec.vivDate]);
+  const warn = check?.warning && confirmed === sig;
+  const save = () => {
+    if (check?.warning && confirmed !== sig) { setConfirmed(sig); return; }
+    onSave(build());
+  };
   const T = (props) => <TextField size="small" fullWidth {...props} />;
   return (
     <Dialog open onClose={onClose} maxWidth="md" fullWidth>
@@ -274,8 +273,10 @@ function RecordDialog({ edit, onClose, onSave }) {
           <Grid size={{ xs: 12, sm: 4 }}>{T({ label: 'Որոշման հղում', value: f.decisionUrl, onChange: set('decisionUrl') })}</Grid>
         </Grid>
         <Box sx={{ mt: 1 }}><Typography variant="caption" color="text.secondary">Կանոններում տույժը հայտարարագրին կապվում է ՀԾՀ-ով, հայտարարագրի տարով և տեսակով, ամսաթիվը՝ «ՎԻՎ Ա ամսաթիվ»։</Typography></Box>
+        {warn && check.warning === 'not_found' && <Alert severity="warning" sx={{ mt: 1.5 }}>EPD-ում այս ՀԾՀ-ի, {rec.year} թ. և «{KIND_LABEL[rec.declarationType]}» տեսակի հայտարարագիր չկա։ Ստուգեք ՀԾՀ-ն, տարին և տեսակը. տույժը կհամարվի չներկայացում (DEC-R4)։ Եթե տվյալները ճիշտ են, սեղմեք «Պահպանել, միևնույն է»։</Alert>}
+        {warn && check.warning === 'before' && <Alert severity="info" sx={{ mt: 1.5 }}>Հայտարարագիրը ({check.decl.code}) հրապարակվել է {fmtDate(check.publishedOn)}՝ մինչև տույժը ({fmtDate(rec.vivDate)}). ուշացում չի համարվի (DEC-R3 չի աշխատի)։ Եթե տվյալները ճիշտ են, սեղմեք «Պահպանել, միևնույն է»։</Alert>}
       </DialogContent>
-      <DialogActions><Button onClick={onClose}>Չեղարկել</Button><Button variant="contained" disabled={!valid} onClick={save}>Պահպանել</Button></DialogActions>
+      <DialogActions><Button onClick={onClose}>Չեղարկել</Button><Button variant="contained" disabled={!valid} onClick={save}>{warn ? 'Պահպանել, միևնույն է' : 'Պահպանել'}</Button></DialogActions>
     </Dialog>
   );
 }

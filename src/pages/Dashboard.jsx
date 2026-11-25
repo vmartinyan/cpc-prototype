@@ -54,7 +54,7 @@ export default function Dashboard() {
   const { results, state } = useStore();
   const stats = useMemo(() => ruleStats(results), [results]);
   const decl = results.declarations;
-  const declFlagged = decl.filter((u) => u.scopes.some((s) => s.score > 0));
+  const declFlagged = decl.filter((u) => u.score > 0);
   const gifts = results.gifts;
   const persons = results.parties.persons;
   const parties = results.parties.parties;
@@ -67,7 +67,7 @@ export default function Dashboard() {
     { label: DIRECTIONS.gifts, value: gifts.filter((g) => g.risky).length, total: gifts.length, onClick: () => navigate('/gifts') },
     { label: DIRECTIONS.integrity, value: integ.filter((q) => q.risky).length, total: integ.length, onClick: () => navigate('/integrity') },
   ];
-  // Բաշխում ըստ մակարդակների. ToR-ի ցածր/միջին/բարձր մակարդակները սահմանված չեն (Q-06), ուստի ցույց է տրվում միավորների միջակայքերով
+  // Բաշխում ըստ համախառն միավորի միջակայքերի (ռիսկային է համարվում շեմին հասնող միավորը, DEC-04)
   const thr = decl.find((u) => u.threshold != null)?.threshold ?? 60;
   const buckets = [
     { label: '0 միավոր', test: (s) => s === 0 },
@@ -78,7 +78,7 @@ export default function Dashboard() {
   const years = [...new Set([...decl.map((u) => u.year), ...gifts.map((g) => g.year), ...parties.map((p) => p.year), ...integ.map((q) => q.year)])].sort();
   const byYear = years.map((y) => ({
     label: String(y),
-    value: decl.filter((u) => u.year === y && u.scopes.some((s) => s.score > 0)).length + gifts.filter((g) => g.year === y && g.risky).length + parties.filter((p) => p.year === y && p.risky).length + integ.filter((q) => q.year === y && q.risky).length,
+    value: decl.filter((u) => u.year === y && u.score > 0).length + gifts.filter((g) => g.year === y && g.risky).length + parties.filter((p) => p.year === y && p.risky).length + integ.filter((q) => q.year === y && q.risky).length,
   }));
   const topRules = Object.entries(stats).filter(([, s]) => s.fired).sort((a, b) => b[1].fired - a[1].fired).slice(0, 10)
     .map(([id, s]) => ({ label: `${id} ${results.rules.find((r) => r.id === id)?.title || ''}`, value: s.fired }));
@@ -103,7 +103,7 @@ export default function Dashboard() {
         <Grid size={{ xs: 12, md: 6 }}><BarChart title="Ռիսկային նշումով փաստաթղթեր՝ ըստ տարվա" data={byYear} /></Grid>
         <Grid size={{ xs: 12, md: 6 }}><BarChart title="Ամենահաճախ աշխատած կանոններ" data={topRules} unitLabel="Աշխատել է" /></Grid>
       </Grid>
-      <Typography variant="caption" color="text.secondary">Ռիսկի մակարդակները (ցածր/միջին/բարձր) սահմանված չեն (Q-06). հայտարարագրերի բաշխումը ցույց է տրված միավորների միջակայքերով։</Typography>
+      <Typography variant="caption" color="text.secondary">Հայտարարագրերի բաշխումը ցույց է տրված համախառն միավորի միջակայքերով. ռիսկային է համարվում շեմին (60) հասնող կամ այն գերազանցող միավորը (DEC-04)։</Typography>
     </>
   );
 }

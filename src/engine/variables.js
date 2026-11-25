@@ -22,8 +22,9 @@ export const VARIABLE_DEFS = [
     history: [{ value: 5000000, effectiveFrom: '2020-01-01' }], srsValue: '5 մլն ՀՀ դրամ', note: 'Կանխիկի չափորոշիչ (DEC-R6) և բարեվարքության չափորոշիչ 11', usedBy: ['DEC-R6', 'INT-R11'] },
   { key: 'cash_ratio', direction: 'declarations', label: 'Կանխիկի և անկանխիկ միջոցների հարաբերակցություն', unit: 'անգամ', type: 'number',
     history: [{ value: 3, effectiveFrom: '2020-01-01' }], srsValue: '3 անգամ', note: 'Կանխիկի չափորոշիչ (DEC-R6)', usedBy: ['DEC-R6'] },
-  { key: 'manual_max_weight', direction: 'declarations', label: 'Ձեռքով դրվող ռիսկային նշման առավելագույն քաշ', unit: 'միավոր', type: 'number',
-    history: [{ value: 25, effectiveFrom: '2020-01-01' }], srsValue: '25', note: 'COM-20', usedBy: ['DEC-R7'] },
+  { key: 'mortgage_keywords', direction: 'declarations', label: 'Բանալի բառեր՝ հիփոթեքային վարկ (DEC-R5)', type: 'list',
+    history: [{ value: ['հիփոթ', 'հիպոթ', 'հիպոտ', 'hipot', 'ипот', 'mortg'], effectiveFrom: '2020-01-01' }], srsValue: '«հիփոթ», «հիպոթ», «հիպոտ», «hipot», «ипот», «mortg»',
+    note: 'Ստացված վարկի տողի տեքստում (նկարագրություն, վճարող, կապի բնույթ) բառի մաս. այդպիսի վարկը DEC-R5-ում չի հաշվվում', usedBy: ['DEC-R5'] },
 
   // ── Նվերներ
   { key: 'gift_large_threshold', direction: 'gifts', label: 'Խոշոր արժեքի նվերի շեմ', unit: 'AMD', type: 'number',
@@ -96,7 +97,7 @@ export const hiddenCodeVariables = (state) => VARIABLE_DEFS.filter((d) => state?
 /** Փոփոխականներ, որոնք օգտագործվում են անմիջապես հաշվարկում (ոչ կանոնի պարամետրով) */
 export const ENGINE_USAGE = {
   dec_threshold: { id: 'Հայտարարագրի վերլուծության շեմ', direction: 'declarations' },
-  manual_max_weight: { id: 'DEC-R7', direction: 'declarations' },
+  mortgage_keywords: { id: 'DEC-R5', direction: 'declarations' },
 };
 
 /** Որտեղ է օգտագործվում համակարգային փոփոխականը (կառուցիչի պայմաններ, պարամետրեր, բարդ փոփոխականներ) */

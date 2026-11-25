@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
-  Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Grid, IconButton, Link, Stack, Tab, Tabs, TextField, Tooltip, Typography, Alert,
+  Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Grid, IconButton, Link, MenuItem, Stack, Tab, Tabs, TextField, Tooltip, Typography, Alert,
   Table, TableBody, TableCell, TableHead, TableRow,
 } from '@mui/material';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
@@ -9,12 +9,14 @@ import CloseIcon from '@mui/icons-material/Close';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { useStore, can } from '../engine/store.js';
-import { current, detailRows, sectionOf, profileChildren, profileName, byInstance, versionsOf, liveProfileOf } from '../data/epd/repository.js';
-import { lk, WF, DECLARATION_TYPE } from '../data/epd/classifiers.js';
+import { detailRows, sectionOf, profileChildren, profileName, byInstance, versionsOf, liveProfileOf } from '../data/epd/repository.js';
+import { lk, WF } from '../data/epd/classifiers.js';
 import { CURRENCY_CODE } from '../data/epd/exchangeRates.js';
-import { declarationsOfPerson, familyComposition } from '../engine/evaluator.js';
-import { computeExpense, EXPENSE_LABELS, effectiveFormulas, readableFormula, DEFAULT_FORMULAS } from '../engine/annualExpense.js';
+import { declarationsOfPerson, familyComposition, declarationWeightTotal, WEIGHT_TOTAL } from '../engine/evaluator.js';
+import { computeExpense, EXPENSE_LABELS, effectiveFormulas, readableFormula, DEFAULT_FORMULAS, manualItems } from '../engine/annualExpense.js';
 import { PageHeader, Section, RuleResults, ScoreChip, RiskChip, SimpleTable, FilterBar, EMPTY_FILTERS, KV, fmtAmd, fmtDate, navigate, InfoNote, fmtNum } from '../components/common.jsx';
 import { ConclusionBox, ManualFlagBox, UndefinedVarsBanner, conclusionLabel } from '../components/casework.jsx';
 import { applyFilters, firedIds } from './filters.js';
@@ -42,41 +44,6 @@ const linkedInfo = (u) => {
 };
 const linkedText = (u) => linkedInfo(u).map((x) => `${x.code} (${x.name}, ${x.relation}${x.official ? ', պաշտոնատար անձ' : ''})`).join('; ');
 
-/** «Պաշտոնը ստանձնելու» և «Պաշտոնը դադարեցնելու» հայտարարագրեր. վերլուծության մոտեցումը քննարկվում է */
-export function DeclarationTypePage({ type }) {
-  const { state } = useStore();
-  const title = type === DECLARATION_TYPE.assumption ? 'Պաշտոնը ստանձնելու հայտարարագրեր' : 'Պաշտոնը դադարեցնելու հայտարարագրեր';
-  const decls = current('de_declaration').filter((d) => d.declarationtype === type);
-  const byState = Object.entries(decls.reduce((m, d) => ({ ...m, [d.wfstateid]: (m[d.wfstateid] || 0) + 1 }), {}));
-  const penalties = (state.penalties?.records || []).filter((r) => r.declarationType === type);
-  return (
-    <>
-      <PageHeader title={title} subtitle="Վերլուծության մոտեցումը քննարկվում է" />
-      <InfoNote severity="info">
-        Ներկայումս մոդուլը վերլուծում է միայն տարեկան հայտարարագրերը։ Սահմանված կանոնները (DEC-R1–DEC-R4) նախատեսված են տարեկան հայտարարագրի համար, ուստի այս տեսակի հայտարարագրերի վրա չեն կիրառվում։ Այս բաժնի կանոնները և գնահատման կարգը կսահմանվեն քննարկումից հետո։
-      </InfoNote>
-      <Section title="Տվյալներ EPD-ում">
-        <KV items={[
-          ['Հայտարարագրեր (ընթացիկ տարբերակ)', decls.length ? `${decls.length}` : 'Mock տվյալներում այս տեսակի հայտարարագրեր չկան'],
-          byState.length > 0 && ['Ըստ կարգավիճակի', byState.map(([w, n]) => `${lk('c_wfstate', Number(w))}՝ ${n}`).join(', ')],
-          ['Տույժերի գրառումներ այս տեսակի համար («Արտաքին ֆայլեր → Տույժեր»)', state.penalties ? `${penalties.length}` : 'Տույժերի տվյալները մուտքագրված չեն'],
-        ]} />
-      </Section>
-      {penalties.length > 0 && (
-        <Section title="Տույժերի ֆայլի գրառումներ">
-          <SimpleTable dense rows={penalties.map((r) => ({ ...r, id: r.row }))} columns={[
-            { key: 'row', label: 'Տող' },
-            { key: 'viv', label: 'ՎԻՎ Ա', render: (r) => `${r.vivNumber || '—'} · ${fmtDate(r.vivDate)}` },
-            { key: 'p', label: 'Անձ', render: (r) => `${[r.firstName, r.lastName].filter(Boolean).join(' ')}${r.ssn ? ` · ՀԾՀ ${r.ssn}` : ''}` },
-            { key: 'y', label: 'Տարի', render: (r) => r.year ?? '—' },
-            { key: 'b', label: 'ՎԻՎ հիմք', render: (r) => r.basis || '—' },
-          ]} />
-        </Section>
-      )}
-    </>
-  );
-}
-
 export function DeclarationsList() {
   const { results, state, reevaluate } = useStore();
   const [confirmReeval, setConfirmReeval] = useState(false);
@@ -96,7 +63,7 @@ export function DeclarationsList() {
     hasRule: (u, id) => unitRuleIds(u).includes(id),
   }).sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
   const threshold = units.find((u) => u.threshold != null)?.threshold;
-  const maxPossible = rules.filter((r) => r.enabled).reduce((s, r) => s + (Number(r.weight) || 0), 0) + 25;
+  const weightTotal = declarationWeightTotal(state, results.rules);
 
   return (
     <>
@@ -105,9 +72,9 @@ export function DeclarationsList() {
         subtitle={`Տարեկան հայտարարագրեր EPD-ից՝ բոլոր կարգավիճակներով (ընթացիկ տարբերակ, DEC-06). բովանդակային կանոններով գնահատվում են հրապարակված տարեկան հայտարարագրերը, մնացածը՝ միայն տույժերի կանոններով (DEC-R3, DEC-R4). համախառն միավորի շեմ՝ ${threshold ?? '—'} (DEC-04)`}
       />
       <UndefinedVarsBanner units={units} getResults={allScopeResults} />
-      {threshold != null && maxPossible < threshold && (
-        <InfoNote severity="info">
-          Ներկա պահին իրականացված և միացված կանոնների քաշերի գումարը ձեռքով նշման հետ միասին {maxPossible} է, որը փոքր է {threshold} շեմից. ոչ մի հայտարարագիր չի կարող դառնալ «ռիսկային»։ Ստուգեք կանոնների քաշերը և միացված լինելը («Կանոններ» էջ)։
+      {weightTotal !== WEIGHT_TOTAL && (
+        <InfoNote severity="warning">
+          Միացված կանոնների քաշերի գումարը՝ DEC-R7-ի առավելագույն քաշով, {weightTotal} է, պետք է լինի {WEIGHT_TOTAL}։ Համախառն միավորը ճիշտ չի արտացոլում ռիսկը, քանի դեռ քաշերը վերաբաշխված չեն (<Link component="button" onClick={() => navigate('/rules/declarations')} sx={{ verticalAlign: 'baseline' }}>«Կանոններ → Քաշերի բաշխում»</Link>)։
         </InfoNote>
       )}
       {!state.penalties && (
@@ -141,8 +108,7 @@ export function DeclarationsList() {
                 {u.decl?.publishedon && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>{fmtDate(u.decl.publishedon.slice(0, 10))}</Typography>}
               </>
             ) },
-            { key: 'ind', label: 'Առանձին', align: 'center', render: (u) => <ScoreChip score={u.scopes[0].score} threshold={u.threshold} /> },
-            { key: 'fam', label: 'Ընտանիքի կազմով', align: 'center', render: (u) => { const f = u.scopes?.find((s) => s.kind === 'family'); return f ? <ScoreChip score={f.score} threshold={u.threshold} /> : '—'; } },
+            { key: 'score', label: 'Համախառն միավոր', align: 'center', render: (u) => <ScoreChip score={u.score} threshold={u.threshold} /> },
             { key: 'rules', label: 'Աշխատած կանոններ', render: (u) => (<Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', gap: 0.5 }}>{unitRuleIds(u).map((id) => <Chip key={id} size="small" color="error" variant="outlined" label={id} />)}{Object.keys(u.corrections || {}).length > 0 && <Chip size="small" color="info" variant="outlined" label="ճշգրտված" />}</Stack>) },
             { key: 'risk', label: 'Ռիսկային', render: (u) => (
               <>
@@ -179,12 +145,11 @@ export function DeclarationsList() {
 
 /** Ցանկի արտահանում (.xlsx). արտահանվում են աղյուսակում ցուցադրվող տողերը՝ ըստ ֆիլտրերի և դասավորության */
 function exportList(rows, state, filters) {
-  const famScore = (u) => u.scopes?.find((s) => s.kind === 'family')?.score;
   const columns = [
     { header: 'Հայտարարագիր', width: 16 }, { header: 'Կապված հայտարարագրեր', width: 30, style: 'wrap' }, { header: 'Հայտարարատու', width: 24 }, { header: 'ՀԾՀ', width: 13, style: 'text' },
     { header: 'Պաշտոն', width: 30, style: 'wrap' }, { header: 'Հաստատություն', width: 30, style: 'wrap' }, { header: 'Տարի', width: 7 },
     { header: 'Կարգավիճակ', width: 22 }, { header: 'Ներկայացվել (հրապարակվել) է', width: 14 },
-    { header: 'Միավոր՝ առանձին', width: 10 }, { header: 'Միավոր՝ ընտանիքի կազմով', width: 12 }, { header: 'Շեմ', width: 7 },
+    { header: 'Համախառն միավոր', width: 11 }, { header: 'Շեմ', width: 7 },
     { header: 'Աշխատած կանոններ', width: 24 }, { header: 'Ռիսկային', width: 12 }, { header: 'Եզրակացություն', width: 22 },
   ];
   const data = rows.map((u) => {
@@ -192,7 +157,7 @@ function exportList(rows, state, filters) {
     return [
       u.code, linkedText(u), `${u.profile.firstname} ${u.profile.lastname}`, u.profile.ssn || '', pos.title, pos.org, u.year,
       unitStatus(u), u.decl?.publishedon ? fmtDate(u.decl.publishedon.slice(0, 10)) : '',
-      u.scopes[0]?.score ?? '', famScore(u) ?? '', u.threshold ?? '',
+      u.score ?? '', u.threshold ?? '',
       unitRuleIds(u).join(', '), u.risky ? 'Այո' : 'Ոչ', conclusionLabel(state, 'declarations', u.id),
     ];
   });
@@ -261,8 +226,8 @@ function StatusUnitDetail({ u, rules }) {
       />
       <InfoNote severity="warning">
         {d
-          ? `Հայտարարագիրը ներկայացված (հրապարակված) չէ. կարգավիճակ՝ «${unitStatus(u)}»։ Բովանդակային կանոններով այն չի գնահատվում, գնահատվում է միայն տույժերի կանոններով (DEC-R4)։`
-          : 'EPD-ում այս անձի այս տարվա և տեսակի հայտարարագիր չկա ոչ մի կարգավիճակով. տողը ստեղծվել է տույժերի ֆայլի հիման վրա (DEC-R4)։'}
+          ? `Հայտարարագիրը ներկայացված (հրապարակված) չէ. կարգավիճակ՝ «${unitStatus(u)}»։ Բովանդակային կանոններով այն չի գնահատվում, կիրառվում են միայն տույժերի կանոնները (DEC-R3, DEC-R4)՝ անձի այս և նախորդ տարիների տույժերով։`
+          : 'EPD-ում այս անձի այս տարվա տարեկան հայտարարագիր չկա ոչ մի կարգավիճակով. տողը ստեղծվել է տույժերի հիման վրա. կիրառվում են միայն տույժերի կանոնները (DEC-R3, DEC-R4)։'}
       </InfoNote>
       <RiskTab u={u} rules={rules} />
     </>
@@ -279,53 +244,58 @@ function EvaluationNote({ u }) {
     : <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>{when}</Typography>;
 }
 
-/** Ձեռքով նշման (DEC-R7) տարբերակներ. հայտարարատուի առանձին հաշվարկ և (եթե կա) ընտանիքի ընդհանուր կազմ */
-const manualScopeOptions = (u) => [
-  { value: 'individual', label: u.scopes[0].label },
-  ...(u.scopes.some((s) => s.kind === 'family') ? [{ value: 'family', label: u.scopes.find((s) => s.kind === 'family').label }] : []),
-];
-/** Հաշվարկի արդյունքներ + DEC-R7 (եթե այդ հաշվարկին ձեռքով նշման քաշ է գումարվել) */
-const withManual = (s, u) => {
-  if (!s.manualWeight) return s.results;
-  const fam = u.scopes.some((x) => x.kind === 'family');
-  const mine = (u.manual || []).filter((m) => (s.kind === 'family' ? m.scope === 'family' : m.scope !== 'family' || !fam));
-  return { ...s.results, 'DEC-R7': { ruleId: 'DEC-R7', status: 'fired', weight: s.manualWeight, explanation: `Մասնագետի հիմնավորում՝ ${mine.map((m) => m.note).join('; ')}` } };
-};
-
 function RiskTab({ u, rules }) {
   return (
     <Grid container spacing={2}>
       <Grid size={{ xs: 12, lg: 8 }}>
         <EvaluationNote u={u} />
-        {!u.statusOnly && <InfoNote>
-          DEC-04. հաշվարկը կատարվում է երկու եղանակով՝ յուրաքանչյուր առանձին հայտարարագրողի համար և ընտանիքի ընդհանուր կազմով։ Հայտարարագիրը ռիսկային է, եթե որևէ հաշվարկում համախառն միավորը ≥ {u.threshold}։
-          {' '}Ձեռքով ռիսկային նշման (DEC-R7) քաշը գումարվում է միայն ընտրված հաշվարկին՝ հայտարարատուի առանձին կամ ընտանիքի ընդհանուր կազմով։
-        </InfoNote>}
+        <ScoreSummary u={u} rules={rules} />
         {u.scopes.map((s) => (
-          <Section key={s.key} title={s.label} actions={<ScoreChip score={s.score} threshold={u.threshold} />}>
-            <RuleResults results={withManual(s, u)} rules={rules} showWeight />
+          <Section key={s.key} title={s.label}>
+            <RuleResults results={s.results} rules={rules} showWeight />
           </Section>
         ))}
         {u.original && <BeforeAfter u={u} />}
       </Grid>
       <Grid size={{ xs: 12, lg: 4 }}>
-        <ManualFlagBox direction="declarations" unitId={u.id} refDate={`${u.year}-12-31`} scopes={manualScopeOptions(u)} />
+        <ManualFlagBox direction="declarations" unitId={u.id} />
         <ConclusionBox direction="declarations" unitId={u.id} />
       </Grid>
     </Grid>
   );
 }
 
+/**
+ * Համախառն միավոր (DEC-04, Գ2). բոլոր հաշվարկներում աշխատած եզակի ցուցանիշներ՝ յուրաքանչյուրը մեկ անգամ, և DEC-R7.
+ * ներքևում՝ ըստ հաշվարկների մանրամասները
+ */
+function ScoreSummary({ u, rules }) {
+  const title = (id) => rules.find((r) => r.id === id)?.title || '';
+  return (
+    <Section title="Համախառն միավոր" actions={<ScoreChip score={u.score} threshold={u.threshold} />}>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+        DEC-04. միավորը կազմվում է բոլոր հաշվարկներում ({u.scopes.map((s) => s.label).join('; ')}) աշխատած ցուցանիշների քաշերից. յուրաքանչյուր ցուցանիշ հաշվվում է մեկ անգամ, անկախ նրանից, թե քանի հաշվարկում է աշխատել։ Ռիսկային է, եթե միավորը ≥ {u.threshold ?? '—'}։
+      </Typography>
+      {!u.indicators?.length ? <Typography color="text.secondary">Ռիսկային ցուցանիշներ չկան։</Typography> : (
+        <SimpleTable dense rows={u.indicators.map((x) => ({ ...x, id: x.ruleId }))} columns={[
+          { key: 'id', label: 'Ցուցանիշ', render: (x) => <><Typography variant="body2" sx={{ fontWeight: 600 }}>{x.ruleId}</Typography><Typography variant="caption" color="text.secondary">{title(x.ruleId)}</Typography></> },
+          { key: 'w', label: 'Քաշ', align: 'center', render: (x) => x.weight },
+          { key: 'where', label: 'Որտեղ է աշխատել', render: (x) => <Typography variant="caption">{x.manual ? `Մասնագետի նշում. ${x.note || ''}` : x.scopes.join('; ')}</Typography> },
+        ]} />
+      )}
+    </Section>
+  );
+}
+
 function BeforeAfter({ u }) {
   return (
-    <Section title="Ճշգրտումից առաջ և հետո (DEC-10)">
+    <Section title="Ճշգրտումից առաջ և հետո (DEC-10)" actions={<Typography variant="body2">Համախառն միավոր՝ <b>{u.original.score} → {u.score}</b></Typography>}>
       <SimpleTable dense rows={u.scopes.map((s, i) => ({ id: s.key, s, o: u.original.scopes[i] }))} columns={[
         { key: 'l', label: 'Հաշվարկ', render: (r) => r.s.label },
         { key: 'm0', label: 'ՄԱԾ առաջ', align: 'right', render: (r) => fmtAmd(r.o.exp.monthly) },
         { key: 'm1', label: 'ՄԱԾ հետո', align: 'right', render: (r) => fmtAmd(r.s.exp.monthly) },
         { key: 'f0', label: 'Կանոններ առաջ', render: (r) => firedIds(r.o.results).join(', ') || '—' },
         { key: 'f1', label: 'Կանոններ հետո', render: (r) => firedIds(r.s.results).join(', ') || '—' },
-        { key: 's', label: 'Միավոր առաջ → հետո', align: 'center', render: (r) => `${r.o.score} → ${r.s.score}` },
       ]} />
     </Section>
   );
@@ -357,6 +327,10 @@ function ExpenseTab({ u }) {
                 </TableRow>
               ))}
               <TableRow><TableCell>Անձանց թիվ</TableCell>{u.scopes.map((s) => <TableCell key={s.key} align="right">{s.persons}</TableCell>)}</TableRow>
+              {u.scopes.some((s) => s.exp.manualAlienations || s.exp.manualAcquisitions) && <>
+                <TableRow><TableCell sx={{ color: 'info.main' }}>այդ թվում Ե-ում՝ մասնագետի ավելացրած օտարումներ (DEC-10)</TableCell>{u.scopes.map((s) => <TableCell key={s.key} align="right" sx={{ color: 'info.main' }}>{fmtAmd(s.exp.manualAlienations)}</TableCell>)}</TableRow>
+                <TableRow><TableCell sx={{ color: 'info.main' }}>այդ թվում Գ-ում՝ մասնագետի ավելացրած ձեռքբերումներ (DEC-10)</TableCell>{u.scopes.map((s) => <TableCell key={s.key} align="right" sx={{ color: 'info.main' }}>{fmtAmd(s.exp.manualAcquisitions)}</TableCell>)}</TableRow>
+              </>}
               <TableRow><TableCell sx={{ color: 'text.secondary' }}>Տեղեկատվական. հայտարարագրված ծախսեր (բանաձևում չեն մասնակցում)</TableCell>{u.scopes.map((s) => <TableCell key={s.key} align="right" sx={{ color: 'text.secondary' }}>{fmtAmd(s.exp.declaredExpenses)}</TableCell>)}</TableRow>
               <TableRow><TableCell sx={{ color: 'text.secondary' }}>Տեղեկատվական. օտարված գույքի գումար (եկամուտների մեջ պետք է լինի հայտարարագրված)</TableCell>{u.scopes.map((s) => <TableCell key={s.key} align="right" sx={{ color: 'text.secondary' }}>{fmtAmd(s.exp.alienations)}</TableCell>)}</TableRow>
             </TableBody>
@@ -507,6 +481,8 @@ function DataTab({ u }) {
           ['Տարբերակներ', versions.map((v) => `entityid ${v.entityid}${v === u.decl ? ' (ընթացիկ)' : ' — ոչ ընթացիկ, չի վերլուծվում'}`).join('; ')],
         ]} />
       </Section>
+      <ManualItemsSection u={u} kind="acquisition" />
+      <ManualItemsSection u={u} kind="alienation" />
       {SECTIONS.map((sec) => {
         const rows = decls.flatMap((d) => detailRows(d, sec.table, { includeRejected: true }).map((r) => ({ ...r, _decl: d, _table: sec.table })));
         if (!rows.length) return null;
@@ -524,6 +500,89 @@ function DataTab({ u }) {
       })}
       <CorrectionDialog edit={edit} onClose={() => setEdit(null)} onSave={save} onRevert={() => save(edit.r[edit.key])} />
     </>
+  );
+}
+
+const ITEM_KIND = {
+  acquisition: { title: 'Ձեռքբերում', note: 'Մասնագետի ավելացրած ձեռքբերումներ. գումարը մտնում է ձեռք բերված գույքի (Գ) մեջ և հաշվարկում կիրառվում է հակառակ նշանով (նվազեցնում է ընթացիկ ծախսը)։' },
+  alienation: { title: 'Օտարում', note: 'Մասնագետի ավելացրած օտարումներ. գումարը համարժեք է եկամտի և մտնում է տարվա եկամուտների (Ե) մեջ (մեծացնում է ընթացիկ ծախսը)։' },
+};
+
+/**
+ * Անձինք, որոնց կարող է վերագրվել ավելացված տողը (որոշում է, թե որ հաշվարկում է այն մտնում). հայտարարատու, առանձին
+ * հայտարարագրող ընտանիքի անդամներ (իրենց հայտարարագրում) և չհայտարարագրող անդամներ (հայտարարատուի հայտարարագրում՝
+ * անդամի տեսակով). պաշտոնատար անձ հանդիսացող անդամների տողերը ավելացվում են նրանց սեփական հայտարարագրում
+ */
+function itemOwners(u) {
+  const fam = profileChildren('de_profilefamilymembers', u.decl.declarant);
+  const liveOf = (p) => liveProfileOf(byInstance('de_profile', p))?.instanceid;
+  const officialProfiles = new Set((u.officials || []).map((o) => o.memberProfile));
+  return [
+    { value: `${u.decl.instanceid}|${u.decl.declarant}|`, decl: u.decl.instanceid, profile: u.decl.declarant, familymembertype: null, label: `${profileName(u.decl.declarant)} (հայտարարատու)` },
+    ...u.linked.map((l) => ({ value: `${l.instanceid}|${l.declarant}|`, decl: l.instanceid, profile: l.declarant, familymembertype: null, label: `${profileName(l.declarant)} (${l.code})` })),
+    ...fam.filter((f) => !u.linked.some((l) => l.originaldeclarant === liveOf(f.profile)) && !officialProfiles.has(f.profile))
+      .map((f) => ({ value: `${u.decl.instanceid}|${f.profile}|${f.type}`, decl: u.decl.instanceid, profile: f.profile, familymembertype: f.type, label: `${profileName(f.profile)} (${lk('c_familymembertype', f.type) || 'ընտանիքի անդամ'})` })),
+  ];
+}
+
+/** «Ձեռքբերում» և «Օտարում» (DEC-10). մասնագետի ավելացրած տողեր՝ անվանում, գումար (ՀՀ դրամ), նկարագրություն, անձ */
+function ManualItemsSection({ u, kind }) {
+  const { state, update } = useStore();
+  const allowed = can(state.role, 'correct');
+  const [edit, setEdit] = useState(null); // { key | null, form }
+  const owners = itemOwners(u);
+  const ownerKey = (it) => `${it._declaration}|${it.profile}|${it.familymembertype ?? ''}`;
+  const ids = new Set([u.decl.instanceid, ...u.linked.map((l) => l.instanceid)]);
+  const items = manualItems(state.corrections).filter((it) => it.kind === kind && ids.has(it._declaration));
+  const total = items.reduce((a, it) => a + (Number(it.amount) || 0), 0);
+  const save = () => {
+    const o = owners.find((x) => x.value === edit.form.owner) || owners[0];
+    const key = edit.key || `item:${kind}:${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+    update((s) => ({ corrections: { ...s.corrections, [key]: { _declaration: o.decl, _item: true, kind, name: edit.form.name.trim(), amount: Number(edit.form.amount), description: edit.form.description.trim(), profile: o.profile, familymembertype: o.familymembertype, _by: s.role, _at: new Date().toISOString() } } }));
+    setEdit(null);
+  };
+  const remove = (key) => update((s) => { const { [key]: _, ...rest } = s.corrections; return { corrections: rest }; });
+  const amountOk = edit && /^\d+(\.\d+)?$/.test(String(edit.form.amount).trim()) && Number(edit.form.amount) > 0;
+  return (
+    <Section title={ITEM_KIND[kind].title} actions={allowed && <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => setEdit({ key: null, form: { owner: owners[0].value, name: '', amount: '', description: '' } })}>Ավելացնել</Button>}>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>{ITEM_KIND[kind].note} Տողը մտնում է նշված անձի առանձին հաշվարկի և ընտանիքի ընդհանուր կազմի մեջ (DEC-10). փոփոխությունից հետո սեղմեք «Վերագնահատել»։</Typography>
+      {!items.length ? <Typography variant="body2" color="text.secondary">Չկան։</Typography> : (
+        <SimpleTable dense rows={items.map((it) => ({ ...it, id: it.key }))} columns={[
+          { key: 'owner', label: 'Անձ', render: (it) => owners.find((o) => o.value === ownerKey(it))?.label || profileName(it.profile) },
+          { key: 'name', label: 'Անվանում', render: (it) => it.name },
+          { key: 'amount', label: 'Գումար', align: 'right', render: (it) => fmtAmd(it.amount) },
+          { key: 'desc', label: 'Նկարագրություն', render: (it) => <Typography variant="body2" sx={{ maxWidth: 360 }}>{it.description || '—'}</Typography> },
+          { key: 'by', label: 'Ավելացրել է', render: (it) => <Typography variant="caption" color="text.secondary">{it._by || '—'}{it._at ? ` · ${new Date(it._at).toLocaleDateString('hy-AM')}` : ''}</Typography> },
+          ...(allowed ? [{ key: 'act', label: '', render: (it) => (
+            <Stack direction="row">
+              <Tooltip title="Խմբագրել"><IconButton size="small" onClick={() => setEdit({ key: it.key, form: { owner: ownerKey(it), name: it.name, amount: String(it.amount), description: it.description || '' } })}><EditOutlinedIcon fontSize="small" /></IconButton></Tooltip>
+              <Tooltip title="Հեռացնել"><IconButton size="small" onClick={() => remove(it.key)}><DeleteOutlineIcon fontSize="small" /></IconButton></Tooltip>
+            </Stack>
+          ) }] : []),
+        ]} />
+      )}
+      {items.length > 0 && <Typography variant="body2" sx={{ mt: 1, textAlign: 'right' }}>Ընդամենը՝ <b>{fmtAmd(total)}</b></Typography>}
+      {edit && (
+        <Dialog open onClose={() => setEdit(null)} maxWidth="sm" fullWidth>
+          <DialogTitle>{edit.key ? 'Խմբագրել' : 'Նոր'}՝ {ITEM_KIND[kind].title.toLowerCase()}</DialogTitle>
+          <DialogContent>
+            <Stack spacing={1.5} sx={{ mt: 1 }}>
+              <TextField size="small" select label="Անձ" value={edit.form.owner} onChange={(e) => setEdit({ ...edit, form: { ...edit.form, owner: e.target.value } })}>
+                {owners.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
+              </TextField>
+              <TextField size="small" label="Անվանում" required value={edit.form.name} onChange={(e) => setEdit({ ...edit, form: { ...edit.form, name: e.target.value } })} />
+              <TextField size="small" label="Գումար (ՀՀ դրամ)" required value={edit.form.amount} error={edit.form.amount !== '' && !amountOk} helperText={edit.form.amount !== '' && !amountOk ? 'Դրական թիվ (օր.՝ 1500000 կամ 1500000.50)' : ''}
+                onChange={(e) => setEdit({ ...edit, form: { ...edit.form, amount: e.target.value.replace(',', '.') } })} slotProps={{ htmlInput: { inputMode: 'decimal' } }} />
+              <TextField size="small" label="Նկարագրություն" multiline minRows={2} value={edit.form.description} onChange={(e) => setEdit({ ...edit, form: { ...edit.form, description: e.target.value } })} />
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setEdit(null)}>Չեղարկել</Button>
+            <Button variant="contained" disabled={!edit.form.name.trim() || !amountOk} onClick={save}>Պահպանել</Button>
+          </DialogActions>
+        </Dialog>
+      )}
+    </Section>
   );
 }
 
